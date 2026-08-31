@@ -1,0 +1,23 @@
+# Compiled binaries (the executable files Go generates)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+backend_bin
+
+# Dependency directories (Go manages these automatically)
+vendor/
+
+# Environment variables / Secrets (NEVER upload these!)
+.env
+*.env.local
+
+# IDE specific files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
