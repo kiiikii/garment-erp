@@ -9,13 +9,9 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/kiiikii/garment-erp/backend/internal/models"
 	_ "github.com/lib/pq"
 )
-
-type HealthResponse struct {
-	Status string `json:"status"`
-	Envi   string `json:"environment"`
-}
 
 type App struct {
 	DB *sql.DB
@@ -25,7 +21,7 @@ func (app *App) HealthChecker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := HealthResponse{
+	response := models.HealthResponse{
 		Status: "success",
 		Envi:   os.Getenv("APP_ENV"),
 	}
@@ -39,7 +35,7 @@ func (app *App) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req CreateOrderReq
+	var req models.CreateOrderReq
 	var newID int
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -94,10 +90,10 @@ func (app *App) GetOrders(w http.ResponseWriter, r *http.Request) {
 
 	defer rows.Close()
 
-	var orders []Order = []Order{}
+	var orders []models.Order = []models.Order{}
 
 	for rows.Next() {
-		var o Order
+		var o models.Order
 
 		err := rows.Scan(&o.ID, &o.CustName, &o.ProdType, &o.Status)
 		if err != nil {
