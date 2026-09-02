@@ -1,16 +1,15 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
 	"github.com/kiiikii/garment-erp/backend/internal/models"
-	_ "github.com/lib/pq"
+	"github.com/kiiikii/garment-erp/backend/internal/repository"
 )
 
 type App struct {
-	DB *sql.DB
+	Repo *repository.OrderRepo
 }
 
 func (app *App) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +19,6 @@ func (app *App) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.CreateOrderReq
-	var newID int
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 
@@ -29,8 +27,7 @@ func (app *App) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `INSERT INTO orders (customer_name, product_type) VALUES ($1, $2) RETURNING id`
-	err = app.DB.QueryRow(query, req.CustName, req.ProdType).Scan(&newID)
+	newID, err := app.Repo.InsertOrder(req)
 	if err != nil {
 		http.Error(w, "Cannot insert data", http.StatusInternalServerError)
 		return
@@ -65,31 +62,9 @@ func (app *App) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `SELECT id, customer_name, product_type, status FROM orders ORDER BY id DESC`
-	rows, err := app.DB.Query(query)
+	orders, err := app.Repo.GetAllOrders()
 	if err != nil {
 		http.Error(w, "Database query Failed", http.StatusInternalServerError)
-		return
-	}
-
-	defer rows.Close()
-
-	var orders []models.Order = []models.Order{}
-
-	for rows.Next() {
-		var o models.Order
-
-		err := rows.Scan(&o.ID, &o.CustName, &o.ProdType, &o.Status)
-		if err != nil {
-			http.Error(w, "Error scanning order row", http.StatusInternalServerError)
-			return
-		}
-
-		orders = append(orders, o)
-	}
-
-	if err = rows.Err(); err != nil {
-		http.Error(w, "Error reading order rows", http.StatusInternalServerError)
 		return
 	}
 
