@@ -9,6 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/kiiikii/garment-erp/backend/internal/handlers"
+	"github.com/kiiikii/garment-erp/backend/internal/repository"
 	_ "github.com/lib/pq"
 )
 
@@ -43,7 +44,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Database is unreachable: %v", err)
 	}
-	app := &handlers.App{DB: db}
+
+	repo := &repository.OrderRepo{DB: db}
+	app := &handlers.App{Repo: repo}
 
 	fmt.Println("Success connected to the database")
 
