@@ -24,3 +24,12 @@ func (s *OrderService) CreateOrder(req models.CreateOrderReq) (int, error) {
 func (s *OrderService) GetAllOrders() ([]models.Order, error) {
 	return s.Repo.GetAllOrders()
 }
+
+func (s *OrderService) UpdateStatus(id int, newStatus string) error {
+	switch newStatus {
+	case "PENDING", "LOA", "SAMPLING", "MASS_PRODUCTION":
+		return s.Repo.UpdateOrderStatus(id, newStatus)
+	default:
+		return errors.New("Invalid status trasition")
+	}
+}

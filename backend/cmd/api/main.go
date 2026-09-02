@@ -54,6 +54,7 @@ func main() {
 
 	http.HandleFunc("/api/ping", app.HealthChecker)
 	http.HandleFunc("/api/v1/orders", app.OrdersRouter)
+	http.HandleFunc("/api/v1/orders/status", app.UpdateOrderStatus)
 
 	errs := http.ListenAndServe(":"+port, nil)
 	if errs != nil {

@@ -45,3 +45,8 @@ func (r *OrderRepo) GetAllOrders() ([]models.Order, error) {
 
 	return orders, nil
 }
+
+func (r *OrderRepo) UpdateOrderStatus(id int, newStatus string) error {
+	_, err := r.DB.Exec(`UPDATE orders SET status = $1 WHERE id = $2`, newStatus, id)
+	return err
+}
