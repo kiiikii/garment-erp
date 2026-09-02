@@ -5,11 +5,11 @@ import (
 	"net/http"
 
 	"github.com/kiiikii/garment-erp/backend/internal/models"
-	"github.com/kiiikii/garment-erp/backend/internal/repository"
+	"github.com/kiiikii/garment-erp/backend/internal/services"
 )
 
 type App struct {
-	Repo *repository.OrderRepo
+	Service *services.OrderService
 }
 
 func (app *App) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -27,9 +27,9 @@ func (app *App) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newID, err := app.Repo.InsertOrder(req)
+	newID, err := app.Service.CreateOrder(req)
 	if err != nil {
-		http.Error(w, "Cannot insert data", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (app *App) GetOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := app.Repo.GetAllOrders()
+	orders, err := app.Service.GetAllOrders()
 	if err != nil {
 		http.Error(w, "Database query Failed", http.StatusInternalServerError)
 		return

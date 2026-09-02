@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kiiikii/garment-erp/backend/internal/handlers"
 	"github.com/kiiikii/garment-erp/backend/internal/repository"
+	"github.com/kiiikii/garment-erp/backend/internal/services"
 	_ "github.com/lib/pq"
 )
 
@@ -46,7 +47,8 @@ func main() {
 	}
 
 	repo := &repository.OrderRepo{DB: db}
-	app := &handlers.App{Repo: repo}
+	svc := &services.OrderService{Repo: repo}
+	app := &handlers.App{Service: svc}
 
 	fmt.Println("Success connected to the database")
 
