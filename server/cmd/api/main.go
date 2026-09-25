@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,49 +9,8 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/kiiikii/garment-erp/server/internal/customers"
 )
-
-// ! defining struct
-type Customer struct {
-	Name    string `json:"name"`
-	Phone   string `json:"phone"`
-	Address string `json:"address"`
-}
-
-// ! handler
-func createCustomerHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		//! enforce using HTTP POST
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed. Use POST", http.StatusMethodNotAllowed)
-			return
-		}
-
-		//! decode incoming JSON
-		var c Customer
-		err := json.NewDecoder(r.Body).Decode(&c)
-		if err != nil {
-			http.Error(w, "Failed to decode JSON", http.StatusBadRequest)
-			return
-		}
-
-		//! inserting into postgres
-		var newID int
-		sqlStatement := `INSERT INTO customers (name, phone, address) VALUES ($1, $2, $3) RETURNING id`
-
-		//! use db.QueryRow
-		err = db.QueryRow(sqlStatement, c.Name, c.Phone, c.Address).Scan(&newID)
-		if err != nil {
-			log.Println("Database Error:", err)
-			http.Error(w, "Failed to save customer to database", http.StatusInternalServerError)
-			return
-		}
-
-		//! sending success response back
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(w, "Successfully created Customer #%d: %s\n", newID, c.Name)
-	}
-}
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -97,7 +55,15 @@ func main() {
 	}
 
 	http.HandleFunc("/health", healthCheckHandler)
-	http.HandleFunc("/customers", createCustomerHandler(db))
+	http.HandleFunc("/customers", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			customers.CreateCustomerHandler(db)(w, r)
+		} else if r.Method == http.MethodGet {
+			customers.GetCustomerHandler(db)(w, r)
+		} else {
+			http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	fmt.Printf("Starting Garment API server on port %s...\n", port)
 	err = http.ListenAndServe(":"+port, nil)
