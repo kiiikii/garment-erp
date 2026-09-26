@@ -17,6 +17,27 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Garment API is running!")
 }
 
+// ! CORS Middleware
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//! telling the browser where's NextJS
+		w.Header().Set("Access-Control-Allow-Origin", "http://localost:3000")
+
+		//! specify permitted http mehtods
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+		//! allowing Next.JS send JSON data
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
 func main() {
 	//! Load the env
 	err := godotenv.Load()
@@ -54,16 +75,20 @@ func main() {
 		port = "8080"
 	}
 
+	customerRepo := customers.NewCustomeRepository(db)
+	customerService := customers.NewCustomerService(customerRepo)
+	customerHandler := customers.NewCustomerHandler(customerService)
+
 	http.HandleFunc("/health", healthCheckHandler)
-	http.HandleFunc("/customers", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/customers", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			customers.CreateCustomerHandler(db)(w, r)
+			customerHandler.CreateCustomer(w, r)
 		} else if r.Method == http.MethodGet {
-			customers.GetCustomerHandler(db)(w, r)
+			customerHandler.GetAllCustomers(w, r)
 		} else {
 			http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
 		}
-	})
+	}))
 
 	fmt.Printf("Starting Garment API server on port %s...\n", port)
 	err = http.ListenAndServe(":"+port, nil)
