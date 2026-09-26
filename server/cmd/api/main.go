@@ -10,6 +10,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/kiiikii/garment-erp/server/internal/customers"
+	"github.com/kiiikii/garment-erp/server/internal/orders"
 )
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,16 +76,35 @@ func main() {
 		port = "8080"
 	}
 
+	//! repository
 	customerRepo := customers.NewCustomeRepository(db)
+	orderRepo := orders.NewOrderRepository(db)
+
+	//! service
 	customerService := customers.NewCustomerService(customerRepo)
+	orderService := orders.NewOrderService(orderRepo)
+
+	//! handler
 	customerHandler := customers.NewCustomerHandler(customerService)
+	orderHandler := orders.NewOrderHandler(orderService)
 
 	http.HandleFunc("/health", healthCheckHandler)
+
 	http.HandleFunc("/customers", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			customerHandler.CreateCustomer(w, r)
 		} else if r.Method == http.MethodGet {
 			customerHandler.GetAllCustomers(w, r)
+		} else {
+			http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	http.HandleFunc("/orders", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			orderHandler.CreateOrder(w, r)
+		} else if r.Method == http.MethodGet {
+			orderHandler.GetAllOrders(w, r)
 		} else {
 			http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
 		}
