@@ -20,8 +20,8 @@ func (s *CustomerService) CreateCustomer(c *Customer) (int, error) {
 	}
 
 	//! Business Rule -> Phone must be at least 15 characters
-	if len(c.Phone) <= 15 {
-		return 0, errors.New("Phone number must be at least 15 characters")
+	if len(c.Phone) <= 10 {
+		return 0, errors.New("Phone number must be at least 10 characters")
 	}
 
 	//! if passed, tell repository to save
