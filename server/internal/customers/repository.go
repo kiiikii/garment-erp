@@ -47,5 +47,9 @@ func (r *CustomerRepository) GetAll() ([]CustomerResponse, error) {
 		customerList = append(customerList, c)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, errors.New("Database connection dies during the loop")
+	}
+
 	return customerList, nil
 }
