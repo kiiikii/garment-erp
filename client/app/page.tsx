@@ -1,69 +1,76 @@
-import Image from "next/image";
+//! Define typescript Interface (match with Go Customer Response struct)
+interface Customer {
+  id: number;
+  name: string;
+  phone: string;
+  address: string;
+}
 
-export default function Home() {
+//! Next.js server component
+export default async function Home() {
+  //! fetch data directly from backend
+  //! the {cache: "no-store"} ensure Next.js always gets a live data from database
+  const res = await fetch("http://localhost:8080/customers", {
+    cache: "no-cache",
+  });
+
+  //! parsing JSON respon into typescript array
+  const customers: Customer[] = await res.json();
+
+  //! render the HTML and inject the dynamic data
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-gray-50 p-8 font-sans">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-gray-800">
+          Garment ERP Dashboard
+        </h1>
+
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full border-collapse">
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="py-3 px-4 text-left text-sm font-semibold text-white">
+                  ID
+                </th>
+                <th className="py-3 px-4 text-left text-sm font-semibold text-white">
+                  Name
+                </th>
+                <th className="py-3 px-4 text-left text-sm font-semibold text-white">
+                  Phone
+                </th>
+                <th className="py-3 px-4 text-left text-sm font-semibold text-white">
+                  Address
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Loop through the customers array and create a row for each one */}
+              {customers.map((c) => (
+                <tr
+                  key={c.id}
+                  className="border-b border-gray-200 hover:bg-gray-100 transition-colors"
+                >
+                  <td className="py-3 px-4 text-gray-700">{c.id}</td>
+                  <td className="py-3 px-4 text-gray-700 font-medium">
+                    {c.name}
+                  </td>
+                  <td className="py-3 px-4 text-gray-700">{c.phone}</td>
+                  <td className="py-3 px-4 text-gray-700">{c.address}</td>
+                </tr>
+              ))}
+
+              {/* Fallback if the database is empty */}
+              {customers.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-4 text-center text-gray-500">
+                    No customers found in the database.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
