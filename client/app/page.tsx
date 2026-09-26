@@ -1,3 +1,5 @@
+import CustomerForm from "@/components/CustomerForm";
+
 //! Define typescript Interface (match with Go Customer Response struct)
 interface Customer {
   id: number;
@@ -24,6 +26,8 @@ export default async function Home() {
         <h1 className="text-3xl font-bold mb-6 text-gray-800">
           Garment ERP Dashboard
         </h1>
+
+        <CustomerForm />
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full border-collapse">

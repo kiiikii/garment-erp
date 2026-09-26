@@ -22,7 +22,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//! telling the browser where's NextJS
-		w.Header().Set("Access-Control-Allow-Origin", "http://localost:3000")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 
 		//! specify permitted http mehtods
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")

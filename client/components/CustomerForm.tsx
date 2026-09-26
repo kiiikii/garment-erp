@@ -1,5 +1,5 @@
 //! unlock interactivity in browser
-"use client";
+"use client"
 
 import { useState } from "react";
 
