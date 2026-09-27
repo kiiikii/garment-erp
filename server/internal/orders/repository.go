@@ -108,3 +108,15 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 
 	return orderList, nil
 }
+
+// ! update status order
+func (r *OrderRepository) UpdateOrderStatus(orderID int, newStatus string) error {
+	sqlStatement := `UPDATE orders SET status = $1 WHERE id = $2`
+
+	_, err := r.db.Exec(sqlStatement, newStatus, orderID)
+	if err != nil {
+		return errors.New("failed to update status in database")
+	}
+
+	return nil
+}

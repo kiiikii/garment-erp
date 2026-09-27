@@ -25,3 +25,21 @@ func (s *OrderService) CreateOrder(o *Order) (int, error) {
 func (s *OrderService) GetAllOrders() ([]OrderResponse, error) {
 	return s.repo.GetAllWithCustomer()
 }
+
+func (s *OrderService) UpdateStatus(orderID int, currentStatus string, newStatus string) error {
+	//! cannot jump straight to mass product
+	if newStatus == "IN_PRODUCTION" {
+		if currentStatus != "LOA_SIGNED" {
+			return errors.New("Can't start production. LoA hasn't been signed.")
+		}
+	}
+
+	//! cannot sign Loa if sample hasn't been approved
+	if newStatus == "LOA_SIGNED" {
+		if currentStatus != "SAMPLE_APPROVED" {
+			return errors.New("Can't sign LoA. Sample hasn't been approved")
+		}
+	}
+
+	return s.repo.UpdateOrderStatus(orderID, newStatus)
+}

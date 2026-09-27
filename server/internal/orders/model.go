@@ -13,6 +13,7 @@ type Order struct {
 	CustomerID     int         `json:"customer_id"`
 	TotalQuantity  int         `json:"total_quantity"`
 	ProductionType string      `json:"production_type"`
+	Status         string      `json:"status"`
 	Sizes          []OrderSize `json:"sizes"`
 }
 
@@ -21,6 +22,7 @@ type OrderResponse struct {
 	ID             int       `json:"id"`
 	TotalQuantity  int       `json:"total_quantity"`
 	ProductionType string    `json:"production_type"`
+	Status         string    `json:"status"`
 	CreatedAt      time.Time `json:"created_at"`
 	Customer       struct {
 		ID   int    `json:"id"`
