@@ -110,6 +110,14 @@ func main() {
 		}
 	}))
 
+	http.HandleFunc("/orders/status", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch {
+			orderHandler.UpdateOrderStatus(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	fmt.Printf("Starting Garment API server on port %s...\n", port)
 	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
