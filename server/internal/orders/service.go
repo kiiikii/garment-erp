@@ -11,7 +11,7 @@ func NewOrderService(repo *OrderRepository) *OrderService {
 }
 
 func (s *OrderService) CreateOrder(o *Order) (int, error) {
-	if o.Quantity <= 0 {
+	if o.TotalQuantity <= 0 {
 		return 0, errors.New("Quantity must be higher than 0")
 	}
 

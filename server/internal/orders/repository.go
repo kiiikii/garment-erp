@@ -94,6 +94,10 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 		}
 		sizeRows.Close()
 
+		if err := sizeRows.Err(); err != nil {
+			return nil, errors.New("Database Connection dies during the loop")
+		}
+
 		//! append fully built order
 		orderList = append(orderList, res)
 	}
