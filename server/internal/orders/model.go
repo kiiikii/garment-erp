@@ -8,6 +8,12 @@ type OrderSize struct {
 	Quantity  int    `json:"quantity"`
 }
 
+//! status update struct
+type StatusUpdateRequest struct {
+	CurrentStatus string `json:"current_status"`
+	NewStatus     string `json:"new_status"`
+}
+
 //! create order struct
 type Order struct {
 	CustomerID     int         `json:"customer_id"`
