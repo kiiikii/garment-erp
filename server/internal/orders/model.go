@@ -11,7 +11,7 @@ type OrderSize struct {
 //! create order struct
 type Order struct {
 	CustomerID     int         `json:"customer_id"`
-	Quantity       int         `json:"quantity"`
+	TotalQuantity  int         `json:"total_quantity"`
 	ProductionType string      `json:"production_type"`
 	Sizes          []OrderSize `json:"sizes"`
 }
