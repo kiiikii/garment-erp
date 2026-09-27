@@ -2,11 +2,18 @@ package orders
 
 import "time"
 
+//! size struct
+type OrderSize struct {
+	SizeLabel string `json:"size_label"`
+	Quantity  int    `json:"quantity"`
+}
+
 //! create order struct
 type Order struct {
-	CustomerID     int    `json:"customer_id"`
-	Quantity       int    `json:"quantity"`
-	ProductionType string `json:"production_type"`
+	CustomerID     int         `json:"customer_id"`
+	Quantity       int         `json:"quantity"`
+	ProductionType string      `json:"production_type"`
+	Sizes          []OrderSize `json:"sizes"`
 }
 
 //! create response struct
@@ -18,5 +25,6 @@ type OrderResponse struct {
 	Customer       struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
-	}
+	} `json:"customer"`
+	Sizes []OrderSize `json:"sizes"`
 }
