@@ -19,7 +19,7 @@ type Order struct {
 //! create response struct
 type OrderResponse struct {
 	ID             int       `json:"id"`
-	Quantity       int       `json:"quantity"`
+	TotalQuantity  int       `json:"total_quantity"`
 	ProductionType string    `json:"production_type"`
 	CreatedAt      time.Time `json:"created_at"`
 	Customer       struct {
