@@ -120,3 +120,14 @@ func (r *OrderRepository) UpdateOrderStatus(orderID int, newStatus string) error
 
 	return nil
 }
+
+// ! insert order images
+func (r *OrderRepository) InsertOrderImage(orderID int, fileURL string) error {
+	sqlStatement := `INSERT INTO order_images (order_id, file_url) VALUES ($1, $2)`
+	_, err := r.db.Exec(sqlStatement, orderID, fileURL)
+	if err != nil {
+		return errors.New("Failed to saved image record to database")
+	}
+
+	return nil
+}
