@@ -43,3 +43,7 @@ func (s *OrderService) UpdateStatus(orderID int, currentStatus string, newStatus
 
 	return s.repo.UpdateOrderStatus(orderID, newStatus)
 }
+
+func (s *OrderService) SaveImages(orderID int, fileURL string) error {
+	return s.repo.InsertOrderImage(orderID, fileURL)
+}

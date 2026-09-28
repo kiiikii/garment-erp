@@ -3,8 +3,12 @@ package orders
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"time"
 )
 
 type OrderHandler struct {
@@ -85,4 +89,76 @@ func (h *OrderHandler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request)
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Order #%d successfully update to %s\n", orderID, req.NewStatus)
+}
+
+// ! handling upload image
+func (h *OrderHandler) UploadImages(w http.ResponseWriter, r *http.Request) {
+	//! enforce POST method
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	//! parsing multipart form data (with limit upload 10MB)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "Failed to parsing file. File might be too large", http.StatusBadRequest)
+		return
+	}
+
+	//! get the order id from form text field
+	orderIDStr := r.FormValue("order_id")
+	orderID, err := strconv.Atoi(orderIDStr)
+	if err != nil {
+		http.Error(w, "Invalid order id", http.StatusBadRequest)
+		return
+	}
+
+	//! retreive the array of files
+	files := r.MultipartForm.File["tech_packs"]
+	if len(files) == 0 {
+		http.Error(w, "No file uploaded", http.StatusBadRequest)
+		return
+	}
+
+	//! loop through every upload
+	for _, fileHeader := range files {
+		//! open incoming file
+		file, err := fileHeader.Open()
+		if err != nil {
+			http.Error(w, "Failed to open uploaded file", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		//! Generate a unique filename
+		fileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), fileHeader.Filename)
+
+		//! the path where it will be saved on our drive
+		savePath := filepath.Join("..", "uploads", fileName)
+
+		//! create empty file on our drive
+		destinationFile, err := os.Create(savePath)
+		if err != nil {
+			http.Error(w, "Failed to save file on server", http.StatusInternalServerError)
+			return
+		}
+		defer destinationFile.Close()
+
+		//! copy the binary data from the incoming req
+		if _, err := io.Copy(destinationFile, file); err != nil {
+			http.Error(w, "Failed to write file data", http.StatusInternalServerError)
+			return
+		}
+
+		//! save the database record
+		dbFileURL := fmt.Sprintf("/uploads/%s", fileName)
+		err = h.service.SaveImages(orderID, dbFileURL)
+		if err != nil {
+			http.Error(w, "Failed to link image to database", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Succes uploaded %d images for order #%d", len(files), orderID)
 }
