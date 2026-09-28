@@ -118,6 +118,10 @@ func main() {
 		}
 	}))
 
+	http.HandleFunc("/orders/images", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		orderHandler.UploadImages(w, r)
+	}))
+
 	fmt.Printf("Starting Garment API server on port %s...\n", port)
 	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
