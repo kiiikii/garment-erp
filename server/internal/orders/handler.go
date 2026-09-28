@@ -154,6 +154,9 @@ func (h *OrderHandler) UploadImages(w http.ResponseWriter, r *http.Request) {
 		dbFileURL := fmt.Sprintf("/uploads/%s", fileName)
 		err = h.service.SaveImages(orderID, dbFileURL)
 		if err != nil {
+			destinationFile.Close()
+			os.Remove(savePath)
+
 			http.Error(w, "Failed to link image to database", http.StatusInternalServerError)
 			return
 		}

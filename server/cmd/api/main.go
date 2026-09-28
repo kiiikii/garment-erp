@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
@@ -121,6 +122,19 @@ func main() {
 	http.HandleFunc("/orders/images", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		orderHandler.UploadImages(w, r)
 	}))
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	uploadDir := filepath.Join(cwd, "..", "uploads")
+
+	//! create file server that pointing uploads
+	fs := http.FileServer(http.Dir(uploadDir))
+
+	//! tell router to strip the /uploads/
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", fs))
 
 	fmt.Printf("Starting Garment API server on port %s...\n", port)
 	err = http.ListenAndServe(":"+port, nil)
