@@ -39,5 +39,6 @@ type OrderResponse struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	} `json:"customer"`
-	Sizes []OrderSize `json:"sizes"`
+	Sizes    []OrderSize `json:"sizes"`
+	LayoutID *int        `json:"layout_id"`
 }

@@ -38,11 +38,20 @@ func (s *OrderService) GetAllOrders() ([]OrderResponse, error) {
 	return s.repo.GetAllWithCustomer()
 }
 
-func (s *OrderService) UpdateStatus(orderID int, currentStatus string, newStatus string) error {
+func (s *OrderService) UpdateStatus(orderID int, newStatus string) error {
+	currentStatus, layoutID, err := s.repo.GetOrderState(orderID)
+	if err != nil {
+		return err
+	}
+
 	//! cannot jump straight to mass product
 	if newStatus == "IN_PRODUCTION" {
 		if currentStatus != "LOA_SIGNED" {
 			return errors.New("Can't start production. LoA hasn't been signed.")
+		}
+
+		if layoutID == nil {
+			return errors.New("Can't start production. PPIC hasn't assigned")
 		}
 	}
 

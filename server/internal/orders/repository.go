@@ -137,3 +137,16 @@ func (r *OrderRepository) InsertOrderImage(orderID int, fileURL string) error {
 
 	return nil
 }
+
+func (r *OrderRepository) GetOrderState(orderID int) (string, *int, error) {
+	var currentStatus string
+	var layoutID *int
+
+	query := `SELECT status, layout_id FROM orders WHERE id = $1`
+	err := r.db.QueryRow(query, orderID).Scan(&currentStatus, &layoutID)
+	if err != nil {
+		return "", nil, errors.New("Failed to find order state")
+	}
+
+	return currentStatus, layoutID, nil
+}

@@ -82,7 +82,7 @@ func (h *OrderHandler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request)
 	}
 
 	//! send to service layer
-	err = h.service.UpdateStatus(orderID, req.CurrentStatus, req.NewStatus)
+	err = h.service.UpdateStatus(orderID, req.NewStatus)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
