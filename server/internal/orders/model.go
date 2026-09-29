@@ -16,21 +16,26 @@ type StatusUpdateRequest struct {
 
 //! create order struct
 type Order struct {
-	CustomerID     int         `json:"customer_id"`
-	TotalQuantity  int         `json:"total_quantity"`
-	ProductionType string      `json:"production_type"`
-	Status         string      `json:"status"`
-	Sizes          []OrderSize `json:"sizes"`
+	CustomerID             int         `json:"customer_id"`
+	TotalQuantity          int         `json:"total_quantity"`
+	ProductionType         string      `json:"production_type"`
+	Status                 string      `json:"status"`
+	InternalSampleDeadline time.Time   `json:"-"`
+	CustomerSampleDeadline time.Time   `json:"-"`
+	Sizes                  []OrderSize `json:"sizes"`
 }
 
 //! create response struct
 type OrderResponse struct {
-	ID             int       `json:"id"`
-	TotalQuantity  int       `json:"total_quantity"`
-	ProductionType string    `json:"production_type"`
-	Status         string    `json:"status"`
-	CreatedAt      time.Time `json:"created_at"`
-	Customer       struct {
+	ID                     int        `json:"id"`
+	TotalQuantity          int        `json:"total_quantity"`
+	ProductionType         string     `json:"production_type"`
+	Status                 string     `json:"status"`
+	CreatedAt              time.Time  `json:"created_at"`
+	InternalSampleDeadline time.Time  `json:"internal_sample_deadline"`
+	CustomerSampleDeadline time.Time  `json:"customer_sample_deadline"`
+	ActualSampleFinishedAt *time.Time `json:"actual_sample_finished_at"`
+	Customer               struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	} `json:"customer"`

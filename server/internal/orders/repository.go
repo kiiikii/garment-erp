@@ -3,6 +3,7 @@ package orders
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 )
 
 type OrderRepository struct {
@@ -27,9 +28,9 @@ func (r *OrderRepository) Create(o *Order) (int, error) {
 	var newOrderID int
 
 	//! insert main order
-	orderSQL := `INSERT INTO orders (customer_id, total_quantity, production_type) VALUES ($1, $2, $3) RETURNING id`
+	orderSQL := `INSERT INTO orders (customer_id, total_quantity, production_type, internal_sample_deadline, customer_sample_deadline) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	err = tx.QueryRow(orderSQL, o.CustomerID, o.TotalQuantity, o.ProductionType).Scan(&newOrderID)
+	err = tx.QueryRow(orderSQL, o.CustomerID, o.TotalQuantity, o.ProductionType, o.InternalSampleDeadline, o.CustomerSampleDeadline).Scan(&newOrderID)
 	if err != nil {
 		return 0, errors.New("Failed to insert main order")
 	}
@@ -56,10 +57,11 @@ func (r *OrderRepository) Create(o *Order) (int, error) {
 
 // ! JOIN query
 func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
-	sqlStatement := `SELECT o.id, o.total_quantity, o.production_type, o.created_at, c.id, c.name FROM orders o JOIN customers c ON o.customer_id = c.id`
+	sqlStatement := `SELECT o.id, o.total_quantity, o.production_type, o.created_at, o.status, o.internal_sample_deadline, o.customer_sample_deadline, o.actual_sample_finished_at, c.id, c.name FROM orders o JOIN customers c ON o.customer_id = c.id`
 
 	rows, err := r.db.Query(sqlStatement)
 	if err != nil {
+		fmt.Println("DB Query Error:", err)
 		return nil, errors.New("Failed to query orders")
 	}
 
@@ -69,11 +71,15 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 
 	for rows.Next() {
 		var res OrderResponse
+		var safeActualFinished sql.NullTime
 
 		//! update scan
-		err := rows.Scan(&res.ID, &res.TotalQuantity, &res.ProductionType, &res.CreatedAt, &res.Customer.ID, &res.Customer.Name)
+		err := rows.Scan(&res.ID, &res.TotalQuantity, &res.ProductionType, &res.CreatedAt, &res.Status, &res.InternalSampleDeadline, &res.CustomerSampleDeadline, &safeActualFinished, &res.Customer.ID, &res.Customer.Name)
 		if err != nil {
 			return nil, errors.New("Failed to scan order row")
+		}
+		if safeActualFinished.Valid {
+			res.ActualSampleFinishedAt = &safeActualFinished.Time
 		}
 
 		//! fetch the size for specific order id

@@ -1,6 +1,9 @@
 package orders
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type OrderService struct {
 	repo *OrderRepository
@@ -18,6 +21,15 @@ func (s *OrderService) CreateOrder(o *Order) (int, error) {
 	if o.ProductionType != "CMT" && o.ProductionType != "FOB" {
 		return 0, errors.New("Production type must be CMT or FOB")
 	}
+
+	//! get time now
+	now := time.Now()
+
+	//! add 4 days for internal deadline
+	o.InternalSampleDeadline = now.Add(4 * 24 * time.Hour)
+
+	//! add 7 days for customer deadline
+	o.CustomerSampleDeadline = now.Add(7 * 24 * time.Hour)
 
 	return s.repo.Create(o)
 }

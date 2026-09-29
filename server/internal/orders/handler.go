@@ -49,6 +49,7 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	orderList, err := h.service.GetAllOrders()
 	if err != nil {
+		fmt.Println("Handler Error:", err)
 		http.Error(w, "Server Error", http.StatusInternalServerError)
 		return
 	}
