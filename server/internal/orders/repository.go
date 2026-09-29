@@ -140,13 +140,50 @@ func (r *OrderRepository) InsertOrderImage(orderID int, fileURL string) error {
 
 func (r *OrderRepository) GetOrderState(orderID int) (string, *int, error) {
 	var currentStatus string
-	var layoutID *int
+	var safeLayoutID sql.NullInt64
 
 	query := `SELECT status, layout_id FROM orders WHERE id = $1`
-	err := r.db.QueryRow(query, orderID).Scan(&currentStatus, &layoutID)
+	err := r.db.QueryRow(query, orderID).Scan(&currentStatus, &safeLayoutID)
 	if err != nil {
+		fmt.Println("GetOrderState DB Error:", err)
 		return "", nil, errors.New("Failed to find order state")
 	}
 
+	var layoutID *int
+	if safeLayoutID.Valid {
+		id := int(safeLayoutID.Int64)
+		layoutID = &id
+	}
+
 	return currentStatus, layoutID, nil
+}
+
+func (r *OrderRepository) AssignLayout(orderID int, layoutID int) error {
+	query := `UPDATE orders SET layout_id = $1 WHERE id = $2`
+	result, err := r.db.Exec(query, layoutID, orderID)
+	if err != nil {
+		return errors.New("Failed to execute layout assignment")
+	}
+
+	rowAffected, err := result.RowsAffected()
+	if err != nil || rowAffected == 0 {
+		return errors.New("Order not found or layout update failed")
+	}
+
+	return nil
+}
+
+func (r *OrderRepository) CompleteSampling(orderID int, finishedAt string) error {
+	query := `UPDATE orders SET actual_sample_finished_at = $1 WHERE id = $2`
+	result, err := r.db.Exec(query, finishedAt, orderID)
+	if err != nil {
+		return errors.New("Failed to record actual sample completion")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected == 0 {
+		return errors.New("Order not found")
+	}
+
+	return nil
 }

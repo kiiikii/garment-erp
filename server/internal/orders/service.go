@@ -68,3 +68,15 @@ func (s *OrderService) UpdateStatus(orderID int, newStatus string) error {
 func (s *OrderService) SaveImages(orderID int, fileURL string) error {
 	return s.repo.InsertOrderImage(orderID, fileURL)
 }
+
+func (s *OrderService) AssignLayout(orderID int, layoutID int) error {
+	if layoutID <= 0 {
+		return errors.New("Invalid layout ID provided")
+	}
+
+	return s.repo.AssignLayout(orderID, layoutID)
+}
+
+func (s *OrderService) CompleteSampling(orderID int, finishedAt string) error {
+	return s.repo.CompleteSampling(orderID, finishedAt)
+}

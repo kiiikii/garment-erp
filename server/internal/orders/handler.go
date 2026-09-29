@@ -15,6 +15,14 @@ type OrderHandler struct {
 	service *OrderService
 }
 
+type LayoutAssignmentRequest struct {
+	LayoutID int `json:"layout_id"`
+}
+
+type SampleCompleteRequest struct {
+	FinishedAt string `json:"finished_at"`
+}
+
 func NewOrderHandler(service *OrderService) *OrderHandler {
 	return &OrderHandler{service: service}
 }
@@ -165,4 +173,58 @@ func (h *OrderHandler) UploadImages(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Succes uploaded %d images for order #%d", len(files), orderID)
+}
+
+func (h *OrderHandler) AssignLayout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := r.URL.Query().Get("id")
+	orderID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order ID or URL", http.StatusBadRequest)
+		return
+	}
+
+	var req LayoutAssignmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Failed to decode JSON", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.AssignLayout(orderID, req.LayoutID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Order #%d successfully assign to layout #%d\n", orderID, req.LayoutID)
+}
+
+func (h *OrderHandler) CompleteSampling(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := r.URL.Query().Get("id")
+	orderID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order ID in URL", http.StatusBadRequest)
+		return
+	}
+
+	finishedTime := time.Now().Format("2006-01-02 15:04:05")
+
+	err = h.service.CompleteSampling(orderID, finishedTime)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Order #%d sampling marked as finished at %s\n", orderID, finishedTime)
 }

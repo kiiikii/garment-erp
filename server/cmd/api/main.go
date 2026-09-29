@@ -123,6 +123,9 @@ func main() {
 		orderHandler.UploadImages(w, r)
 	}))
 
+	http.HandleFunc("/orders/layout", orderHandler.AssignLayout)
+	http.HandleFunc("/orders/sample-complete", orderHandler.CompleteSampling)
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		panic(err)
