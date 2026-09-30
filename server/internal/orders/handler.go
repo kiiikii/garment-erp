@@ -23,6 +23,10 @@ type SampleCompleteRequest struct {
 	FinishedAt string `json:"finished_at"`
 }
 
+type WaitingReasonRequest struct {
+	Reason string `json:"reason"`
+}
+
 func NewOrderHandler(service *OrderService) *OrderHandler {
 	return &OrderHandler{service: service}
 }
@@ -245,4 +249,33 @@ func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(order)
+}
+
+func (h *OrderHandler) SetWaitingReason(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	orderID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order ID in URL", http.StatusBadRequest)
+		return
+	}
+
+	var req WaitingReasonRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid Request Payload", http.StatusBadRequest)
+		return
+	}
+
+	if req.Reason == "" {
+		http.Error(w, "Waiting reason cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.SetWaitingForMaterials(orderID, req.Reason)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Order #%d flagged as WAITING_FOR_MATERRIALS, Reason: %s\n", orderID, req.Reason)
 }

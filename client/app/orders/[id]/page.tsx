@@ -63,7 +63,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
     );
   }
 
-  const order: Order = await res.json();
+  const orders: Order = await res.json();
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 font-sans">
@@ -78,21 +78,21 @@ export default async function OrderDetailPage({ params }: PageProps) {
               ← Back to All Orders
             </a>
             <h1 className="text-3xl font-bold text-gray-800 mt-1">
-              Order #{order.id} Details
+              Order #{orders.id} Details
             </h1>
           </div>
           <span
             className={`px-3 py-1.5 rounded-full text-sm font-bold ${
-              order.status === "IN_PRODUCTION"
+              orders.status === "IN_PRODUCTION"
                 ? "bg-green-100 text-green-800"
-                : order.status === "LOA_SIGNED"
+                : orders.status === "LOA_SIGNED"
                   ? "bg-purple-100 text-purple-800"
-                  : order.status === "SAMPLE_APPROVED"
+                  : orders.status === "SAMPLE_APPROVED"
                     ? "bg-blue-100 text-blue-800"
                     : "bg-yellow-100 text-yellow-800"
             }`}
           >
-            {order.status}
+            {orders.status}
           </span>
         </div>
 
@@ -108,21 +108,21 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 Customer Name
               </p>
               <p className="text-gray-800 font-medium">
-                {order.customer?.name}
+                {orders.customer?.name}
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase font-semibold">
                 Production Type
               </p>
-              <p className="text-blue-600 font-bold">{order.production_type}</p>
+              <p className="text-blue-600 font-bold">{orders.production_type}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase font-semibold">
                 Total Quantity
               </p>
               <p className="text-gray-800 font-medium">
-                {order.total_quantity} pcs
+                {orders.total_quantity} pcs
               </p>
             </div>
             <div>
@@ -130,8 +130,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 Assigned Layout / Sewing Line
               </p>
               <p className="font-semibold text-gray-700">
-                {order.layout_id ? (
-                  `Sewing Line #${order.layout_id}`
+                {orders.layout_id ? (
+                  `Sewing Line #${orders.layout_id}`
                 ) : (
                   <span className="text-red-500 font-normal">
                     Unassigned (PPIC Gate Locked)
@@ -151,7 +151,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 Internal Deadline (4 Days)
               </p>
               <p className="text-gray-800 font-medium">
-                {new Date(order.internal_sample_deadline).toLocaleDateString()}
+                {new Date(orders.internal_sample_deadline).toLocaleDateString()}
               </p>
             </div>
             <div>
@@ -159,7 +159,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 Customer Deadline (7 Days)
               </p>
               <p className="text-gray-800 font-medium">
-                {new Date(order.customer_sample_deadline).toLocaleDateString()}
+                {new Date(orders.customer_sample_deadline).toLocaleDateString()}
               </p>
             </div>
             <div>
@@ -167,8 +167,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 Actual Sample Finished At
               </p>
               <p className="font-medium text-gray-800">
-                {order.actual_sample_finished_at ? (
-                  new Date(order.actual_sample_finished_at).toLocaleString()
+                {orders.actual_sample_finished_at ? (
+                  new Date(orders.actual_sample_finished_at).toLocaleString()
                 ) : (
                   <span className="text-yellow-600">Pending completion</span>
                 )}
@@ -183,8 +183,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
             Size Breakdown
           </h2>
           <div className="flex flex-wrap gap-3">
-            {order.sizes && order.sizes.length > 0 ? (
-              order.sizes.map((s, idx) => (
+            {orders.sizes && orders.sizes.length > 0 ? (
+              orders.sizes.map((s, idx) => (
                 <div
                   key={idx}
                   className="bg-gray-100 border border-gray-200 rounded-lg p-3 text-center min-w-22.5"
@@ -211,8 +211,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
             Tech Pack Images & Sketches
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {order.images && order.images.length > 0 ? (
-              order.images.map((img) => (
+            {orders.images && orders.images.length > 0 ? (
+              orders.images.map((img) => (
                 <div
                   key={img.id}
                   className="border rounded-lg overflow-hidden bg-gray-50"

@@ -44,21 +44,60 @@ func (s *OrderService) UpdateStatus(orderID int, newStatus string) error {
 		return err
 	}
 
-	//! cannot jump straight to mass product
-	if newStatus == "IN_PRODUCTION" {
-		if currentStatus != "LOA_SIGNED" {
-			return errors.New("Can't start production. LoA hasn't been signed.")
-		}
-
-		if layoutID == nil {
-			return errors.New("Can't start production. PPIC hasn't assigned")
+	// 1. Sampling Phase
+	if currentStatus == "WAITING_FOR_SAMPLE" {
+		if newStatus != "SAMPLE_APPROVED" && newStatus != "SAMPLE_REVISED" && newStatus != "SAMPLE_REJECTED" {
+			return errors.New("Invalid transition. Must be APPROVED, REVISED, or REJECTED.")
 		}
 	}
 
-	//! cannot sign Loa if sample hasn't been approved
-	if newStatus == "LOA_SIGNED" {
-		if currentStatus != "SAMPLE_APPROVED" {
-			return errors.New("Can't sign LoA. Sample hasn't been approved")
+	if currentStatus == "SAMPLE_REVISED" {
+		if newStatus != "WAITING_FOR_SAMPLE" && newStatus != "SAMPLE_APPROVED" {
+			return errors.New("Revised sample must go back to waiting for sampling or be approved.")
+		}
+	}
+
+	if currentStatus == "SAMPLE_REJECTED" {
+		return errors.New("Cannot update status. This order has been sample-rejected and closed.")
+	}
+
+	// 2. LoA Phase Transitions
+	if currentStatus == "SAMPLE_APPROVED" {
+		if newStatus != "LOA_SIGNED" && newStatus != "LOA_REVISED" && newStatus != "LOA_REJECTED" {
+			return errors.New("After sample approval, LoA must be SIGNED, REVISED, or REJECTED.")
+		}
+	}
+
+	if currentStatus == "LOA_REVISED" {
+		if newStatus != "LOA_SIGNED" && newStatus != "LOA_REJECTED" {
+			return errors.New("Revised LoA must eventually be SIGNED or REJECTED.")
+		}
+	}
+
+	if currentStatus == "LOA_REJECTED" {
+		return errors.New("Cannot update status. The LoA was rejected and this order is closed.")
+	}
+
+	if currentStatus == "LOA_SIGNED" {
+		if newStatus != "WAITING_FOR_MATERIALS" && newStatus != "READY_FOR_PRODUCTION" {
+			return errors.New("After LoA is signed, order must either wait for materials or be marked ready for production.")
+		}
+	}
+
+	if currentStatus == "WAITING_FOR_MATERIALS" {
+		if newStatus != "READY_FOR_PRODUCTION" {
+			return errors.New("An order waiting for materials can only transition to READY_FOR_PRODUCTION once resolved.")
+		}
+	}
+
+	// 3. Production Readiness Gate
+	if newStatus == "IN_PRODUCTION" {
+		if currentStatus != "READY_FOR_PRODUCTION" {
+			return errors.New("Can't start production. Order has not passed the Production Readiness check")
+		}
+
+		if layoutID == nil {
+			return errors.New("Can't start production. PPIC hasn't assigned a sewing line layout.")
 		}
 	}
 
@@ -83,4 +122,8 @@ func (s *OrderService) CompleteSampling(orderID int, finishedAt string) error {
 
 func (s *OrderService) GetByID(id int) (*OrderResponse, error) {
 	return s.repo.GetOrderByID(id)
+}
+
+func (s *OrderService) SetWaitingForMaterials(orderID int, reason string) error {
+	return s.repo.SetWaitingForMaterials(orderID, reason)
 }

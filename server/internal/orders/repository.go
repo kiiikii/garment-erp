@@ -57,7 +57,11 @@ func (r *OrderRepository) Create(o *Order) (int, error) {
 
 // ! JOIN query
 func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
-	sqlStatement := `SELECT o.id, o.total_quantity, o.production_type, o.created_at, o.status, o.internal_sample_deadline, o.customer_sample_deadline, o.actual_sample_finished_at, c.id, c.name FROM orders o JOIN customers c ON o.customer_id = c.id`
+	sqlStatement := `
+		SELECT o.id, o.total_quantity, o.production_type, o.created_at, 
+		o.status, o.internal_sample_deadline, o.customer_sample_deadline, 
+		o.actual_sample_finished_at, o.waiting_reason, c.id, c.name 
+		FROM orders o JOIN customers c ON o.customer_id = c.id`
 
 	rows, err := r.db.Query(sqlStatement)
 	if err != nil {
@@ -72,14 +76,22 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 	for rows.Next() {
 		var res OrderResponse
 		var safeActualFinished sql.NullTime
+		var safeWaitingReason sql.NullString
 
 		//! update scan
-		err := rows.Scan(&res.ID, &res.TotalQuantity, &res.ProductionType, &res.CreatedAt, &res.Status, &res.InternalSampleDeadline, &res.CustomerSampleDeadline, &safeActualFinished, &res.Customer.ID, &res.Customer.Name)
+		err := rows.Scan(
+			&res.ID, &res.TotalQuantity, &res.ProductionType,
+			&res.CreatedAt, &res.Status, &res.InternalSampleDeadline,
+			&res.CustomerSampleDeadline, &safeActualFinished, &safeWaitingReason,
+			&res.Customer.ID, &res.Customer.Name)
 		if err != nil {
 			return nil, errors.New("Failed to scan order row")
 		}
 		if safeActualFinished.Valid {
 			res.ActualSampleFinishedAt = &safeActualFinished.Time
+		}
+		if safeWaitingReason.Valid {
+			res.WaitingReason = &safeWaitingReason.String
 		}
 
 		//! fetch the size for specific order id
@@ -197,18 +209,19 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 		`SELECT o.id, o.customer_id, c.name, c.phone, c.address,
 		o.total_quantity, o.production_type, o.status, o.created_at,
 		o.internal_sample_deadline, o.customer_sample_deadline,
-		o.actual_sample_finished_at, o.layout_id FROM orders o
+		o.actual_sample_finished_at, o.layout_id, o.waiting_reason FROM orders o
 		JOIN customers c ON o.customer_id = c.id WHERE o.id = $1`
 
 	var res OrderResponse
 	var safeActualFinished sql.NullTime
 	var safeLayoutID sql.NullInt64
+	var safeWaitingReason sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&res.ID, &res.Customer.ID, &res.Customer.Name, &res.Customer.Phone,
 		&res.Customer.Address, &res.TotalQuantity, &res.ProductionType, &res.Status,
 		&res.CreatedAt, &res.InternalSampleDeadline, &res.CustomerSampleDeadline,
-		&safeActualFinished, &safeLayoutID,
+		&safeActualFinished, &safeLayoutID, &safeWaitingReason,
 	)
 	if err != nil {
 		return nil, errors.New("Order Not Found")
@@ -221,18 +234,28 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 		layoutID := int(safeLayoutID.Int64)
 		res.LayoutID = &layoutID
 	}
+	if safeWaitingReason.Valid {
+		res.WaitingReason = &safeWaitingReason.String
+	}
 
 	//! fetching sizes
+	res.Sizes = []OrderSize{}
+
 	sizeQuery := `SELECT size_label, quantity FROM order_sizes WHERE order_id = $1`
 	rows, err := r.db.Query(sizeQuery, id)
-	if err == nil {
+	if err != nil {
+		fmt.Println("GetOrderByID size query error:", err)
+	} else {
 		defer rows.Close()
 		for rows.Next() {
 			var s OrderSize
 			if err := rows.Scan(&s.SizeLabel, &s.Quantity); err != nil {
+				fmt.Println("GetOrderByID Size scan error:", err)
+			} else {
 				res.Sizes = append(res.Sizes, s)
 			}
 		}
+
 	}
 
 	if err := rows.Err(); err != nil {
@@ -260,4 +283,14 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 	}
 
 	return &res, nil
+}
+
+// ! waiting for material
+func (r *OrderRepository) SetWaitingForMaterials(orderID int, reason string) error {
+	query := `UPDATE orders SET status = 'WAITING_FOR_MATERIALS', waiting_reason = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, reason, orderID)
+	if err != nil {
+		return errors.New("Failed to set waiting status and reason")
+	}
+	return nil
 }

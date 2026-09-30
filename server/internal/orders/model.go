@@ -35,6 +35,7 @@ type OrderResponse struct {
 	InternalSampleDeadline time.Time  `json:"internal_sample_deadline"`
 	CustomerSampleDeadline time.Time  `json:"customer_sample_deadline"`
 	ActualSampleFinishedAt *time.Time `json:"actual_sample_finished_at"`
+	WaitingReason          *string    `json:"waiting_reason"`
 	Customer               struct {
 		ID      int    `json:"id"`
 		Name    string `json:"name"`

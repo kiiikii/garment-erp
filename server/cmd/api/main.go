@@ -154,6 +154,15 @@ func main() {
 		}
 	}))
 
+	http.HandleFunc("/orders/waiting", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost, http.MethodPatch:
+			orderHandler.SetWaitingReason(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		panic(err)
