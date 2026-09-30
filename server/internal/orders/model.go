@@ -36,9 +36,15 @@ type OrderResponse struct {
 	CustomerSampleDeadline time.Time  `json:"customer_sample_deadline"`
 	ActualSampleFinishedAt *time.Time `json:"actual_sample_finished_at"`
 	Customer               struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
+		ID      int    `json:"id"`
+		Name    string `json:"name"`
+		Phone   string `json:"phone"`
+		Address string `json:"address"`
 	} `json:"customer"`
-	Sizes    []OrderSize `json:"sizes"`
-	LayoutID *int        `json:"layout_id"`
+	Sizes  []OrderSize `json:"sizes"`
+	Images []struct {
+		ID       int    `json:"id"`
+		ImageURL string `json:"image_url"`
+	} `json:"images"`
+	LayoutID *int `json:"layout_id"`
 }

@@ -81,7 +81,9 @@ export default async function OrdersPage() {
                   className="border-b border-gray-200 hover:bg-gray-100 transition-colors"
                 >
                   <td className="py-3 px-4 text-gray-700 font-medium">
-                    #{o.id}
+                    <a href={`/orders/${o.id}`} className="text-blue-600 hover:underline">
+                      #{o.id}
+                    </a>
                   </td>
                   {/* 3. Accessing the joined relational data! */}
                   <td className="py-3 px-4 text-gray-700">{o.customer.name}</td>

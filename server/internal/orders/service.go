@@ -80,3 +80,7 @@ func (s *OrderService) AssignLayout(orderID int, layoutID int) error {
 func (s *OrderService) CompleteSampling(orderID int, finishedAt string) error {
 	return s.repo.CompleteSampling(orderID, finishedAt)
 }
+
+func (s *OrderService) GetByID(id int) (*OrderResponse, error) {
+	return s.repo.GetOrderByID(id)
+}

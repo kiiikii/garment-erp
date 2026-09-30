@@ -92,39 +92,67 @@ func main() {
 	http.HandleFunc("/health", healthCheckHandler)
 
 	http.HandleFunc("/customers", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
+		switch r.Method {
+		case http.MethodPost:
 			customerHandler.CreateCustomer(w, r)
-		} else if r.Method == http.MethodGet {
+		case http.MethodGet:
 			customerHandler.GetAllCustomers(w, r)
-		} else {
+		default:
 			http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
 		}
 	}))
 
 	http.HandleFunc("/orders", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
+		switch r.Method {
+		case http.MethodGet:
+			//! checking specific ID
+			if r.URL.Query().Get("id") != "" {
+				orderHandler.GetByID(w, r)
+			} else {
+				orderHandler.GetAllOrders(w, r)
+			}
+		case http.MethodPost:
 			orderHandler.CreateOrder(w, r)
-		} else if r.Method == http.MethodGet {
-			orderHandler.GetAllOrders(w, r)
-		} else {
-			http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
 
 	http.HandleFunc("/orders/status", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPatch {
+		switch r.Method {
+		case http.MethodPatch:
 			orderHandler.UpdateOrderStatus(w, r)
-		} else {
+		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
 
 	http.HandleFunc("/orders/images", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		orderHandler.UploadImages(w, r)
+		switch r.Method {
+		case http.MethodPost:
+			orderHandler.UploadImages(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
 	}))
 
-	http.HandleFunc("/orders/layout", orderHandler.AssignLayout)
-	http.HandleFunc("/orders/sample-complete", orderHandler.CompleteSampling)
+	http.HandleFunc("/orders/layout", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost, http.MethodPatch:
+			orderHandler.AssignLayout(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	http.HandleFunc("/orders/sample-complete", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPatch:
+			orderHandler.CompleteSampling(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 
 	cwd, err := os.Getwd()
 	if err != nil {

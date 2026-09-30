@@ -138,6 +138,7 @@ func (r *OrderRepository) InsertOrderImage(orderID int, fileURL string) error {
 	return nil
 }
 
+// ! get order state
 func (r *OrderRepository) GetOrderState(orderID int) (string, *int, error) {
 	var currentStatus string
 	var safeLayoutID sql.NullInt64
@@ -158,6 +159,7 @@ func (r *OrderRepository) GetOrderState(orderID int) (string, *int, error) {
 	return currentStatus, layoutID, nil
 }
 
+// ! assigning layout
 func (r *OrderRepository) AssignLayout(orderID int, layoutID int) error {
 	query := `UPDATE orders SET layout_id = $1 WHERE id = $2`
 	result, err := r.db.Exec(query, layoutID, orderID)
@@ -173,6 +175,7 @@ func (r *OrderRepository) AssignLayout(orderID int, layoutID int) error {
 	return nil
 }
 
+// ! sampling complete
 func (r *OrderRepository) CompleteSampling(orderID int, finishedAt string) error {
 	query := `UPDATE orders SET actual_sample_finished_at = $1 WHERE id = $2`
 	result, err := r.db.Exec(query, finishedAt, orderID)
@@ -186,4 +189,75 @@ func (r *OrderRepository) CompleteSampling(orderID int, finishedAt string) error
 	}
 
 	return nil
+}
+
+// ! get order by id
+func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
+	query :=
+		`SELECT o.id, o.customer_id, c.name, c.phone, c.address,
+		o.total_quantity, o.production_type, o.status, o.created_at,
+		o.internal_sample_deadline, o.customer_sample_deadline,
+		o.actual_sample_finished_at, o.layout_id FROM orders o
+		JOIN customers c ON o.customer_id = c.id WHERE o.id = $1`
+
+	var res OrderResponse
+	var safeActualFinished sql.NullTime
+	var safeLayoutID sql.NullInt64
+
+	err := r.db.QueryRow(query, id).Scan(
+		&res.ID, &res.Customer.ID, &res.Customer.Name, &res.Customer.Phone,
+		&res.Customer.Address, &res.TotalQuantity, &res.ProductionType, &res.Status,
+		&res.CreatedAt, &res.InternalSampleDeadline, &res.CustomerSampleDeadline,
+		&safeActualFinished, &safeLayoutID,
+	)
+	if err != nil {
+		return nil, errors.New("Order Not Found")
+	}
+
+	if safeActualFinished.Valid {
+		res.ActualSampleFinishedAt = &safeActualFinished.Time
+	}
+	if safeLayoutID.Valid {
+		layoutID := int(safeLayoutID.Int64)
+		res.LayoutID = &layoutID
+	}
+
+	//! fetching sizes
+	sizeQuery := `SELECT size_label, quantity FROM order_sizes WHERE order_id = $1`
+	rows, err := r.db.Query(sizeQuery, id)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var s OrderSize
+			if err := rows.Scan(&s.SizeLabel, &s.Quantity); err != nil {
+				res.Sizes = append(res.Sizes, s)
+			}
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.New("Database connection dies during the loop")
+	}
+
+	//! fetch images
+	imgQuery := `SELECT id, file_url FROM order_images WHERE order_id = $1`
+	imgRows, err := r.db.Query(imgQuery, id)
+	if err == nil {
+		defer imgRows.Close()
+		for imgRows.Next() {
+			var img struct {
+				ID       int    `json:"id"`
+				ImageURL string `json:"image_url"`
+			}
+			if err := imgRows.Scan(&img.ID, &img.ImageURL); err != nil {
+				res.Images = append(res.Images, img)
+			}
+		}
+	}
+
+	if err := imgRows.Err(); err != nil {
+		return nil, errors.New("Database connection dies during the loop")
+	}
+
+	return &res, nil
 }

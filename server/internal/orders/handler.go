@@ -50,21 +50,21 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	idStr := r.URL.Query().Get("id")
+	if idStr != "" {
+		h.GetByID(w, r)
 		return
 	}
 
-	orderList, err := h.service.GetAllOrders()
+	// Otherwise, return the full list for the dashboard
+	orders, err := h.service.GetAllOrders()
 	if err != nil {
-		fmt.Println("Handler Error:", err)
-		http.Error(w, "Server Error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(orderList)
+	json.NewEncoder(w).Encode(orders)
 }
 
 func (h *OrderHandler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
@@ -227,4 +227,22 @@ func (h *OrderHandler) CompleteSampling(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Order #%d sampling marked as finished at %s\n", orderID, finishedTime)
+}
+
+func (h *OrderHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+
+	order, err := h.service.GetByID(id)
+	if err != nil {
+		http.Error(w, "Order Not Found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(order)
 }
