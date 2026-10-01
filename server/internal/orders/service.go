@@ -101,6 +101,37 @@ func (s *OrderService) UpdateStatus(orderID int, newStatus string) error {
 		}
 	}
 
+	// 4. Mass Production pipeline
+	if currentStatus == "IN_PRODUCTION" {
+		if newStatus != "CUTTING" {
+			return errors.New("Order must go to CUTTING after entering production.")
+		}
+	}
+
+	if currentStatus == "CUTTING" {
+		if newStatus != "SEWING" {
+			return errors.New("Order must go to SEWING after cutting.")
+		}
+	}
+
+	if currentStatus == "SEWING" {
+		if newStatus != "QC" {
+			return errors.New("Order must go to QC after sewing.")
+		}
+	}
+
+	if currentStatus == "QC" {
+		if newStatus != "FINISHING" && newStatus != "SEWING" {
+			return errors.New("After QC, order must proceed to FINISHING or go back to SEWING for rework.")
+		}
+	}
+
+	if currentStatus == "FINISHING" {
+		if newStatus != "READY_FOR_SHIPPING" {
+			return errors.New("After finishing, order must be marked READY_FOR_SHIPPING.")
+		}
+	}
+
 	return s.repo.UpdateOrderStatus(orderID, newStatus)
 }
 

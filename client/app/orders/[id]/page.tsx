@@ -1,3 +1,5 @@
+// export const dynamic = "force-dynamic";
+
 import Image from "next/image";
 import OrderActions from "./OrderAction";
 import Link from "next/link";
@@ -65,6 +67,47 @@ export default async function OrderDetailPage({ params }: PageProps) {
     );
   }
 
+  const getCurrentLocation = (status: string, layoutID: number | null) => {
+    if (!layoutID) {
+      return (
+        <span className="text-red-600">Unassigned (PPIC Gate Locked)</span>
+      );
+    }
+
+    switch (status) {
+      case "CUTTING":
+        return <span className="text-indigo-600 font-bold">Cutting Room</span>;
+      case "SEWING":
+        return (
+          <span className="text-blue-600 font-bold">
+            Sewing Line #{layoutID}
+          </span>
+        );
+      case "QC":
+        return (
+          <span className="text-orange-600 font-bold">
+            Quality Control (QC) Station
+          </span>
+        );
+      case "FINISHING":
+        return (
+          <span className="text-green-600 font-bold">Finishing & Packing</span>
+        );
+      case "READY_FOR_SHIPPING":
+        return (
+          <span className="text-gray-800 font-bold">
+            Warehouse (Ready to Ship)
+          </span>
+        );
+      default:
+        return (
+          <span className="text-gray-600">
+            Assigned to Sewing Line #{layoutID}
+          </span>
+        );
+    }
+  };
+
   const orders: Order = await res.json();
 
   return (
@@ -99,11 +142,11 @@ export default async function OrderDetailPage({ params }: PageProps) {
         </div>
 
         {/* Order Action */}
-        <OrderActions 
-           orderID={orders.id} 
-           currentStatus={orders.status} 
-           hasLayout={orders.layout_id !== null}
-           isSampleFinished={orders.actual_sample_finished_at !== null}
+        <OrderActions
+          orderID={orders.id}
+          currentStatus={orders.status}
+          hasLayout={orders.layout_id !== null}
+          isSampleFinished={orders.actual_sample_finished_at !== null}
         />
 
         {/* Grid Overview */}
@@ -125,7 +168,9 @@ export default async function OrderDetailPage({ params }: PageProps) {
               <p className="text-xs text-gray-500 uppercase font-semibold">
                 Production Type
               </p>
-              <p className="text-blue-600 font-bold">{orders.production_type}</p>
+              <p className="text-blue-600 font-bold">
+                {orders.production_type}
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase font-semibold">
@@ -137,17 +182,11 @@ export default async function OrderDetailPage({ params }: PageProps) {
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase font-semibold">
-                Assigned Layout / Sewing Line
+                Current Factory Location
               </p>
-              <p className="font-semibold text-gray-700">
-                {orders.layout_id ? (
-                  `Sewing Line #${orders.layout_id}`
-                ) : (
-                  <span className="text-red-500 font-normal">
-                    Unassigned (PPIC Gate Locked)
-                  </span>
-                )}
-              </p>
+              <div className="font-semibold text-gray-700">
+                {getCurrentLocation(orders.status, orders.layout_id)}
+              </div>
             </div>
           </div>
 

@@ -20,6 +20,7 @@ export default function OrderActions({
   const [loading, setLoading] = useState(false);
   const [waitingReason, setWaitingReason] = useState("");
   const [showWaitingInput, setShowWaitingInput] = useState(false);
+  const [sewingLine, setSewingLine] = useState("");
 
   //! helper for standard status updates
   const updateStatus = async (newStatus: string) => {
@@ -207,10 +208,89 @@ export default function OrderActions({
               Send to Production Floor
             </button>
           ) : (
-            <span className="text-red-600 font-bold px-2 py-2">
-              Cannot start production: Assign PPIC Layout first.
-            </span>
+            <div className="flex flex-col gap-2 p-4 border-2 border-dashed border-gray-400 rounded bg-gray-50 w-full">
+              <span className="font-bold text-gray-700">
+                🔒 PPIC Gate: Assign Production Line
+              </span>
+              <div className="flex gap-2 text-gray-900">
+                <select
+                  value={sewingLine}
+                  onChange={(e) => setSewingLine(e.target.value)}
+                  className="border p-2 rounded flex-1 bg-white"
+                >
+                  <option value="">-- Select Sewing Line --</option>
+                  <option value="1">Line 1 (Heavy Duty / Denim)</option>
+                  <option value="2">Line 2 (Delicate / Silk)</option>
+                  <option value="3">Line 3 (Standard Cotton)</option>
+                </select>
+                <button
+                  onClick={() => {
+                    if (!sewingLine)
+                      return alert("Please select a line first!");
+                    executeAction("layout", "PATCH", {
+                      layout_id: parseInt(sewingLine),
+                    });
+                  }}
+                  className="bg-gray-800 text-white px-6 py-2 rounded hover:bg-black font-medium"
+                >
+                  Lock Layout
+                </button>
+              </div>
+            </div>
           ))}
+
+        {currentStatus === "IN_PRODUCTION" && (
+          <button
+            onClick={() => updateStatus("CUTTING")}
+            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-medium"
+          >
+            Start Cutting
+          </button>
+        )}
+
+        {currentStatus === "CUTTING" && (
+          <button
+            onClick={() => updateStatus("SEWING")}
+            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-medium"
+          >
+            Move to Sewing
+          </button>
+        )}
+
+        {currentStatus === "SEWING" && (
+          <button
+            onClick={() => updateStatus("QC")}
+            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-medium"
+          >
+            Send to Quality Control (QC)
+          </button>
+        )}
+
+        {currentStatus === "QC" && (
+          <>
+            <button
+              onClick={() => updateStatus("FINISHING")}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-medium"
+            >
+              Pass QC (Move to Finishing)
+            </button>
+            <button
+              onClick={() => updateStatus("SEWING")}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-medium"
+            >
+              Fail QC (Rework in Sewing)
+            </button>
+          </>
+        )}
+
+        {currentStatus === "FINISHING" && (
+          <button
+            onClick={() => updateStatus("READY_FOR_SHIPPING")}
+            className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 font-bold"
+          >
+            Pack & Mark Ready for Shipping
+          </button>
+        )}
       </div>
       {showWaitingInput && (
         <div className="mt-4 p-4 border rounded bg-orange-50 flex gap-2">
@@ -219,7 +299,7 @@ export default function OrderActions({
             placeholder="E.g., Fabric delayed by supplier..."
             value={waitingReason}
             onChange={(e) => setWaitingReason(e.target.value)}
-            className="border p-2 rounded flex-1"
+            className="border p-2 rounded flex-1 text-gray-900"
           />
           <button
             onClick={() =>

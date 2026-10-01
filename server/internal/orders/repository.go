@@ -60,7 +60,7 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 	sqlStatement := `
 		SELECT o.id, o.total_quantity, o.production_type, o.created_at, 
 		o.status, o.internal_sample_deadline, o.customer_sample_deadline, 
-		o.actual_sample_finished_at, o.waiting_reason, c.id, c.name 
+		o.actual_sample_finished_at, o.waiting_reason, o.layout_id, c.id, c.name 
 		FROM orders o JOIN customers c ON o.customer_id = c.id`
 
 	rows, err := r.db.Query(sqlStatement)
@@ -77,13 +77,14 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 		var res OrderResponse
 		var safeActualFinished sql.NullTime
 		var safeWaitingReason sql.NullString
+		var safeLayoutID sql.NullInt64
 
 		//! update scan
 		err := rows.Scan(
 			&res.ID, &res.TotalQuantity, &res.ProductionType,
 			&res.CreatedAt, &res.Status, &res.InternalSampleDeadline,
 			&res.CustomerSampleDeadline, &safeActualFinished, &safeWaitingReason,
-			&res.Customer.ID, &res.Customer.Name)
+			&safeLayoutID, &res.Customer.ID, &res.Customer.Name)
 		if err != nil {
 			return nil, errors.New("Failed to scan order row")
 		}
@@ -92,6 +93,10 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 		}
 		if safeWaitingReason.Valid {
 			res.WaitingReason = &safeWaitingReason.String
+		}
+		if safeLayoutID.Valid {
+			val := int(safeLayoutID.Int64)
+			res.LayoutID = &val
 		}
 
 		//! fetch the size for specific order id
@@ -173,7 +178,7 @@ func (r *OrderRepository) GetOrderState(orderID int) (string, *int, error) {
 
 // ! assigning layout
 func (r *OrderRepository) AssignLayout(orderID int, layoutID int) error {
-	query := `UPDATE orders SET layout_id = $1 WHERE id = $2`
+	query := `UPDATE orders SET layout_id = $1 WHERE id = $2 AND status = 'READY_FOR_PRODUCTION'`
 	result, err := r.db.Exec(query, layoutID, orderID)
 	if err != nil {
 		return errors.New("Failed to execute layout assignment")

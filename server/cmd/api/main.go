@@ -165,7 +165,7 @@ func main() {
 
 	http.HandleFunc("/orders/resume", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
-		case http.MethodPost:
+		case http.MethodPatch:
 			orderHandler.ResumeOrder(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
