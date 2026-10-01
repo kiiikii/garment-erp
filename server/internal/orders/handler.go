@@ -279,3 +279,21 @@ func (h *OrderHandler) SetWaitingReason(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Order #%d flagged as WAITING_FOR_MATERRIALS, Reason: %s\n", orderID, req.Reason)
 }
+
+func (h *OrderHandler) ResumeOrder(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	orderID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.ResumeOrder(orderID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Order #%d resumed and is now READY_FOR_PRODUCTION\n", orderID)
+}

@@ -1,4 +1,6 @@
 import Image from "next/image";
+import OrderActions from "./OrderAction";
+import Link from "next/link";
 
 interface OrderSize {
   size_label: string;
@@ -52,12 +54,12 @@ export default async function OrderDetailPage({ params }: PageProps) {
           <p className="text-gray-600 mb-4">
             Could not retrieve order #{orderID} from the backend.
           </p>
-          <a
+          <Link
             href="/orders"
             className="text-blue-600 hover:underline font-medium"
           >
             ← Back to Orders Dashboard
-          </a>
+          </Link>
         </div>
       </main>
     );
@@ -71,12 +73,12 @@ export default async function OrderDetailPage({ params }: PageProps) {
         {/* Navigation & Header */}
         <div className="flex justify-between items-center">
           <div>
-            <a
+            <Link
               href="/orders"
               className="text-blue-600 hover:underline text-sm font-medium"
             >
               ← Back to All Orders
-            </a>
+            </Link>
             <h1 className="text-3xl font-bold text-gray-800 mt-1">
               Order #{orders.id} Details
             </h1>
@@ -95,6 +97,14 @@ export default async function OrderDetailPage({ params }: PageProps) {
             {orders.status}
           </span>
         </div>
+
+        {/* Order Action */}
+        <OrderActions 
+           orderID={orders.id} 
+           currentStatus={orders.status} 
+           hasLayout={orders.layout_id !== null}
+           isSampleFinished={orders.actual_sample_finished_at !== null}
+        />
 
         {/* Grid Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

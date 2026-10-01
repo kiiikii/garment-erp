@@ -69,8 +69,8 @@ func (s *OrderService) UpdateStatus(orderID int, newStatus string) error {
 	}
 
 	if currentStatus == "LOA_REVISED" {
-		if newStatus != "LOA_SIGNED" && newStatus != "LOA_REJECTED" {
-			return errors.New("Revised LoA must eventually be SIGNED or REJECTED.")
+		if newStatus != "LOA_SIGNED" && newStatus != "LOA_REJECTED" && newStatus != "SAMPLE_APPROVED" {
+			return errors.New("Revised LoA must eventually be SIGNED, REJECTED, or sent back for approval.")
 		}
 	}
 
@@ -126,4 +126,8 @@ func (s *OrderService) GetByID(id int) (*OrderResponse, error) {
 
 func (s *OrderService) SetWaitingForMaterials(orderID int, reason string) error {
 	return s.repo.SetWaitingForMaterials(orderID, reason)
+}
+
+func (s *OrderService) ResumeOrder(orderID int) error {
+	return s.repo.ResumeOrder(orderID)
 }

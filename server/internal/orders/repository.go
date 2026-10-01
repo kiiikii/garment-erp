@@ -131,12 +131,12 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 func (r *OrderRepository) UpdateOrderStatus(orderID int, newStatus string) error {
 	sqlStatement := `UPDATE orders SET status = $1 WHERE id = $2`
 
-	_, err := r.db.Exec(sqlStatement, newStatus, orderID)
-	if err != nil {
-		return errors.New("failed to update status in database")
+	if newStatus == "WAITIN_FOR_SAMPLE" {
+		sqlStatement = `UPDATE orders SET status = $1, actual_sample_finished_at = NULL WHERE id = $2`
 	}
 
-	return nil
+	_, err := r.db.Exec(sqlStatement, newStatus, orderID)
+	return err
 }
 
 // ! insert order images
@@ -292,5 +292,21 @@ func (r *OrderRepository) SetWaitingForMaterials(orderID int, reason string) err
 	if err != nil {
 		return errors.New("Failed to set waiting status and reason")
 	}
+	return nil
+}
+
+// ! resume order
+func (r *OrderRepository) ResumeOrder(orderID int) error {
+	query := `UPDATE orders SET status = 'READY_FOR_PRODUCTION', waiting_reason = NULL WHERE id = $1 AND status = 'WAITING_FOR_MATERIALS`
+	result, err := r.db.Exec(query, orderID)
+	if err != nil {
+		return errors.New("Failed to resume order")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected == 0 {
+		return errors.New("Order is not currently waiting for materials / not found")
+	}
+
 	return nil
 }
