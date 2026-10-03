@@ -32,6 +32,11 @@ interface Order {
   };
   sizes: OrderSize[] | null;
   images: OrderImage[] | null;
+  waiting_reason?: string | null;
+  internal_production_deadline: string;
+  customer_production_deadline: string;
+  actual_production_started_at: string | null;
+  actual_production_completed_at: string | null;
 }
 
 interface PageProps {
@@ -99,6 +104,10 @@ export default async function OrderDetailPage({ params }: PageProps) {
             Warehouse (Ready to Ship)
           </span>
         );
+      case "SHIPPED":
+        return (
+          <span className="text-black font-extrabold">Shipped & Closed</span>
+        );
       default:
         return (
           <span className="text-gray-600">
@@ -126,19 +135,25 @@ export default async function OrderDetailPage({ params }: PageProps) {
               Order #{orders.id} Details
             </h1>
           </div>
-          <span
-            className={`px-3 py-1.5 rounded-full text-sm font-bold ${
-              orders.status === "IN_PRODUCTION"
-                ? "bg-green-100 text-green-800"
-                : orders.status === "LOA_SIGNED"
-                  ? "bg-purple-100 text-purple-800"
-                  : orders.status === "SAMPLE_APPROVED"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-yellow-100 text-yellow-800"
-            }`}
-          >
-            {orders.status}
-          </span>
+          {orders.waiting_reason ? (
+            <span className="bg-red-600 text-white px-4 py-2 rounded-full font-bold shadow animate-pulse">
+              HALTED ({orders.status})
+            </span>
+          ) : (
+            <span
+              className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+                orders.status === "IN_PRODUCTION"
+                  ? "bg-green-100 text-green-800"
+                  : orders.status === "LOA_SIGNED"
+                    ? "bg-purple-100 text-purple-800"
+                    : orders.status === "SAMPLE_APPROVED"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              {orders.status}
+            </span>
+          )}
         </div>
 
         {/* Order Action */}
@@ -147,10 +162,11 @@ export default async function OrderDetailPage({ params }: PageProps) {
           currentStatus={orders.status}
           hasLayout={orders.layout_id !== null}
           isSampleFinished={orders.actual_sample_finished_at !== null}
+          waitingReason={orders.waiting_reason}
         />
 
         {/* Grid Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Customer & Production Info */}
           <div className="bg-white p-6 rounded-lg shadow space-y-4">
             <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
@@ -222,6 +238,61 @@ export default async function OrderDetailPage({ params }: PageProps) {
                   <span className="text-yellow-600">Pending completion</span>
                 )}
               </p>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow space-y-4">
+            <h2 className="text-lg font-bold text-gray-800 border-b pb-2">
+              Mass Production Timelines
+            </h2>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500 font-semibold">
+                  INTERNAL TARGET (9 DAYS)
+                </p>
+                <p className="text-gray-900">
+                  {orders.internal_production_deadline
+                    ? new Date(
+                        orders.internal_production_deadline,
+                      ).toLocaleDateString()
+                    : "Not started"}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-semibold">
+                  CUSTOMER TARGET (12 DAYS)
+                </p>
+                <p className="text-gray-900">
+                  {orders.customer_production_deadline
+                    ? new Date(
+                        orders.customer_production_deadline,
+                      ).toLocaleDateString()
+                    : "Not started"}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-semibold">
+                  ACTUAL PRODUCTION START
+                </p>
+                <p className="text-gray-900">
+                  {orders.actual_production_started_at
+                    ? new Date(
+                        orders.actual_production_started_at,
+                      ).toLocaleString()
+                    : "Pending..."}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-semibold">
+                  ACTUAL COMPLETION (SHIPPING)
+                </p>
+                <p className="text-gray-900">
+                  {orders.actual_production_completed_at
+                    ? new Date(
+                        orders.actual_production_completed_at,
+                      ).toLocaleString()
+                    : "In Progress..."}
+                </p>
+              </div>
             </div>
           </div>
         </div>

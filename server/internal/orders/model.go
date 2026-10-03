@@ -47,5 +47,9 @@ type OrderResponse struct {
 		ID       int    `json:"id"`
 		ImageURL string `json:"image_url"`
 	} `json:"images"`
-	LayoutID *int `json:"layout_id"`
+	LayoutID                    *int       `json:"layout_id"`
+	InternalProductionDeadline  *time.Time `json:"internal_production_deadline"`
+	CustomerProductionDeadline  *time.Time `json:"customer_production_deadline"`
+	ActualProductionStartedAt   *time.Time `json:"actual_production_started_at"`
+	ActualProductionCompletedAt *time.Time `json:"actual_production_completed_at"`
 }

@@ -104,7 +104,6 @@ func (h *OrderHandler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request)
 	fmt.Fprintf(w, "Order #%d successfully update to %s\n", orderID, req.NewStatus)
 }
 
-// ! handling upload image
 func (h *OrderHandler) UploadImages(w http.ResponseWriter, r *http.Request) {
 	//! enforce POST method
 	if r.Method != http.MethodPost {
@@ -296,4 +295,58 @@ func (h *OrderHandler) ResumeOrder(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Order #%d resumed and is now READY_FOR_PRODUCTION\n", orderID)
+}
+
+func (h *OrderHandler) HoldProduction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := r.URL.Query().Get("id")
+	orderID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order id", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.HoldProduction(orderID, req.Reason)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Produciton for order #%d halted successfully\n", orderID)
+}
+
+func (h *OrderHandler) ResumeProduction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := r.URL.Query().Get("id")
+	orderID, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid order id", http.StatusBadRequest)
+		return
+	}
+
+	err = h.service.ResumeProduction(orderID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Produciton for order #%d resumed successfully\n", orderID)
 }

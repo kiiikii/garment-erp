@@ -163,13 +163,21 @@ func main() {
 		}
 	}))
 
-	http.HandleFunc("/orders/resume", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/orders/resume-order", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPatch:
 			orderHandler.ResumeOrder(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
+	}))
+
+	http.HandleFunc("/orders/hold-prod", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		orderHandler.HoldProduction(w, r)
+	}))
+
+	http.HandleFunc("/orders/resume-prod", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		orderHandler.ResumeProduction(w, r)
 	}))
 
 	cwd, err := os.Getwd()

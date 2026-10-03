@@ -1,25 +1,27 @@
 import Link from "next/link";
 
 interface OrderSize {
-  size_label: string
-  quantity: number
+  size_label: string;
+  quantity: number;
 }
 
 interface Order {
   id: number;
-  total_quantity: number
-  production_type: string
-  status: string
-  created_at: string
-  internal_sample_deadline: string
-  customer_sample_deadline: string
-  actual_sample_finished_at: string | null
-  layout_id: number | null
+  total_quantity: number;
+  production_type: string;
+  status: string;
+  created_at: string;
+  internal_sample_deadline: string;
+  customer_sample_deadline: string;
+  actual_sample_finished_at: string | null;
+  layout_id: number | null;
   customer: {
-    id: number
-    name: string
-  }
-  sizes: OrderSize[] | null
+    id: number;
+    name: string;
+  };
+  sizes: OrderSize[] | null;
+  internal_production_deadline: string;
+  customer_production_deadline: string;
 }
 
 export default async function OrdersPage() {
@@ -30,7 +32,7 @@ export default async function OrdersPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 font-sans">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl px-6 mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800">
             Production Orders
@@ -64,10 +66,16 @@ export default async function OrdersPage() {
                   Status
                 </th>
                 <th className="py-3 px-4 text-left text-sm font-semibold text-white">
-                  Internal Deadline
+                  Internal Sample
                 </th>
                 <th className="py-3 px-4 text-left text-sm font-semibold text-white">
-                  Customer Deadline
+                  Cust Sample
+                </th>
+                <th className="py-3 px-4 text-left text-sm font-semibold text-white">
+                  Internal Production
+                </th>
+                <th className="py-3 px-4 text-left text-sm font-semibold text-white">
+                  Cust Production
                 </th>
                 <th className="py-3 px-4 text-left text-sm font-semibold text-white">
                   Layout ID
@@ -81,7 +89,10 @@ export default async function OrdersPage() {
                   className="border-b border-gray-200 hover:bg-gray-100 transition-colors"
                 >
                   <td className="py-3 px-4 text-gray-700 font-medium">
-                    <a href={`/orders/${o.id}`} className="text-blue-600 hover:underline">
+                    <a
+                      href={`/orders/${o.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
                       #{o.id}
                     </a>
                   </td>
@@ -90,16 +101,19 @@ export default async function OrdersPage() {
                   <td className="py-3 px-4 text-gray-700 font-bold">
                     {o.production_type}
                   </td>
-                  <td className="py-3 px-4 text-gray-700">{o.total_quantity}</td>
+                  <td className="py-3 px-4 text-gray-700">
+                    {o.total_quantity}
+                  </td>
 
                   {/* Size Breakdown Column */}
                   <td className="py-3 px-4 text-gray-600 text-xs">
                     {o.sizes ? (
                       o.sizes.map((s, idx) => (
-                        <span 
+                        <span
                           key={idx}
-                          className="inline-block bg-gray-100 rounded px-1.5 py-0.5 mr-1 mb-1">
-                            {s.size_label}: {s.quantity}
+                          className="inline-block bg-gray-100 rounded px-1.5 py-0.5 mr-1 mb-1"
+                        >
+                          {s.size_label}: {s.quantity}
                         </span>
                       ))
                     ) : (
@@ -109,14 +123,18 @@ export default async function OrdersPage() {
 
                   {/* Status Badge */}
                   <td className="py-3 px-4 ">
-                    <span 
+                    <span
                       className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        o.status === 'IN_PRODUCTION' ? 'bg-green-100 text-green-800' :
-                        o.status === 'LOA_SIGNED' ? 'bg-purple-100 text-purple-800' :
-                        o.status === 'SAMPLE_APPROVED' ? 'bg-blue-100 text-blue-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {o.status}
+                        o.status === "IN_PRODUCTION"
+                          ? "bg-green-100 text-green-800"
+                          : o.status === "LOA_SIGNED"
+                            ? "bg-purple-100 text-purple-800"
+                            : o.status === "SAMPLE_APPROVED"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {o.status}
                     </span>
                   </td>
 
@@ -127,13 +145,26 @@ export default async function OrdersPage() {
                   <td className="py-3 px-4 text-gray-600 text-xs">
                     {new Date(o.customer_sample_deadline).toLocaleDateString()}
                   </td>
+                  <td className="py-3 px-4 text-gray-600 text-xs">
+                    {new Date(
+                      o.internal_production_deadline,
+                    ).toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4 text-gray-600 text-xs">
+                    {new Date(
+                      o.customer_production_deadline,
+                    ).toLocaleDateString()}
+                  </td>
 
                   {/* Layout Assignment */}
                   <td className="py-3 px-4 font-semibold text-gray-700">
-                    {
-                      o.layout_id ? `Line #${o.layout_id}` : 
-                      <span className="bg-red-500 px-2 py-1 rounded-full text-white text-xs font-bold">Unassigned</span>
-                    }
+                    {o.layout_id ? (
+                      `Line #${o.layout_id}`
+                    ) : (
+                      <span className="bg-red-500 px-2 py-1 rounded-full text-white text-xs font-bold">
+                        Unassigned
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

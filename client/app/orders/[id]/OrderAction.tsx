@@ -8,6 +8,7 @@ interface OrderActionsProps {
   currentStatus: string;
   hasLayout: boolean;
   isSampleFinished: boolean;
+  waitingReason?: string | null;
 }
 
 export default function OrderActions({
@@ -15,10 +16,11 @@ export default function OrderActions({
   currentStatus,
   hasLayout,
   isSampleFinished,
+  waitingReason,
 }: OrderActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [waitingReason, setWaitingReason] = useState("");
+  const [pauseInput, setPauseInput] = useState("");
   const [showWaitingInput, setShowWaitingInput] = useState(false);
   const [sewingLine, setSewingLine] = useState("");
 
@@ -68,7 +70,7 @@ export default function OrderActions({
       );
       if (!res.ok) throw new Error(await res.text());
       setShowWaitingInput(false);
-      setWaitingReason("");
+      setPauseInput("");
       router.refresh();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -192,7 +194,7 @@ export default function OrderActions({
 
         {currentStatus === "WAITING_FOR_MATERIALS" && (
           <button
-            onClick={() => executeAction("resume", "PATCH")}
+            onClick={() => executeAction("resume-order", "PATCH")}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-medium"
           >
             Resume Order (Materials Arrived)
@@ -239,56 +241,88 @@ export default function OrderActions({
             </div>
           ))}
 
-        {currentStatus === "IN_PRODUCTION" && (
-          <button
-            onClick={() => updateStatus("CUTTING")}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-medium"
-          >
-            Start Cutting
-          </button>
-        )}
-
-        {currentStatus === "CUTTING" && (
-          <button
-            onClick={() => updateStatus("SEWING")}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-medium"
-          >
-            Move to Sewing
-          </button>
-        )}
-
-        {currentStatus === "SEWING" && (
-          <button
-            onClick={() => updateStatus("QC")}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-medium"
-          >
-            Send to Quality Control (QC)
-          </button>
-        )}
+        {["IN_PRODUCTION", "CUTTING", "SEWING"].includes(currentStatus) &&
+          (waitingReason ? (
+            //! if pause hide next step
+            <div className="flex flex-wrap items-center gap-3 border-2 border-red-500 rounded bg-red-50 w-full py-3 px-15">
+              <span className="text-red-700 font-bold mr-2">
+                PRODUCTION HALTED : {waitingReason}
+              </span>
+              <button
+                onClick={() => executeAction("resume-prod", "PATCH")}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-bold"
+              >
+                Resolve Issue
+              </button>
+            </div>
+          ) : (
+            //! if active show normal pipeline
+            <>
+              {currentStatus === "IN_PRODUCTION" && (
+                <button
+                  onClick={() => updateStatus("CUTTING")}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded"
+                >
+                  Start Cutting
+                </button>
+              )}
+              {currentStatus === "CUTTING" && (
+                <button
+                  onClick={() => updateStatus("SEWING")}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded"
+                >
+                  Move to Sewing
+                </button>
+              )}
+              {currentStatus === "SEWING" && (
+                <button
+                  onClick={() => updateStatus("QC")}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded"
+                >
+                  Send to QC
+                </button>
+              )}
+              {/* The dynamic Pause button for floor managers */}
+              <button
+                onClick={() => setShowWaitingInput(!showWaitingInput)}
+                className="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 font-medium ml-auto"
+              >
+                Halt Production
+              </button>
+            </>
+          ))}
 
         {currentStatus === "QC" && (
           <>
             <button
               onClick={() => updateStatus("FINISHING")}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-medium"
+              className="bg-green-600 text-white px-4 py-2 rounded"
             >
-              Pass QC (Move to Finishing)
+              Pass QC
             </button>
             <button
               onClick={() => updateStatus("SEWING")}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-medium"
+              className="bg-red-600 text-white px-4 py-2 rounded"
             >
-              Fail QC (Rework in Sewing)
+              Fail QC (Rework)
             </button>
           </>
         )}
-
         {currentStatus === "FINISHING" && (
           <button
             onClick={() => updateStatus("READY_FOR_SHIPPING")}
-            className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 font-bold"
+            className="bg-blue-800 text-white px-4 py-2 rounded font-bold"
           >
-            Pack & Mark Ready for Shipping
+            Pack & Mark Ready
+          </button>
+        )}
+
+        {currentStatus === "READY_FOR_SHIPPING" && (
+          <button
+            onClick={() => updateStatus("SHIPPED")}
+            className="bg-gray-800 text-white px-6 py-2 rounded hover:bg-black font-bold"
+          >
+            Mark as Shipped (Close Order)
           </button>
         )}
       </div>
@@ -297,14 +331,23 @@ export default function OrderActions({
           <input
             type="text"
             placeholder="E.g., Fabric delayed by supplier..."
-            value={waitingReason}
-            onChange={(e) => setWaitingReason(e.target.value)}
+            value={pauseInput}
+            onChange={(e) => setPauseInput(e.target.value)}
             className="border p-2 rounded flex-1 text-gray-900"
           />
           <button
-            onClick={() =>
-              executeAction("waiting", "PATCH", { reason: waitingReason })
-            }
+            onClick={() => {
+              const isMassProduction = [
+                "IN_PRODUCTION",
+                "CUTTING",
+                "SEWING",
+                "QC",
+                "FINISHING",
+              ].includes(currentStatus);
+              const endpoint = isMassProduction ? "hold-prod" : "waiting";
+
+              executeAction(endpoint, "PATCH", { reason: pauseInput });
+            }}
             className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 font-medium"
           >
             Confirm Pause

@@ -60,8 +60,10 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 	sqlStatement := `
 		SELECT o.id, o.total_quantity, o.production_type, o.created_at, 
 		o.status, o.internal_sample_deadline, o.customer_sample_deadline, 
-		o.actual_sample_finished_at, o.waiting_reason, o.layout_id, c.id, c.name 
-		FROM orders o JOIN customers c ON o.customer_id = c.id`
+		o.actual_sample_finished_at, o.waiting_reason, o.layout_id,
+		o.internal_production_deadline, o.customer_production_deadline,
+		o.actual_production_started_at, o.actual_production_completed_at, c.id, c.name 
+		FROM orders o JOIN customers c ON o.customer_id = c.id ORDER BY o.id::integer ASC`
 
 	rows, err := r.db.Query(sqlStatement)
 	if err != nil {
@@ -76,6 +78,10 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 	for rows.Next() {
 		var res OrderResponse
 		var safeActualFinished sql.NullTime
+		var safeInternalProductionDeadline sql.NullTime
+		var safeCustomerProductionDeadline sql.NullTime
+		var safeActualProductionStartedAt sql.NullTime
+		var safeActualProductionCompletedAt sql.NullTime
 		var safeWaitingReason sql.NullString
 		var safeLayoutID sql.NullInt64
 
@@ -84,12 +90,26 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 			&res.ID, &res.TotalQuantity, &res.ProductionType,
 			&res.CreatedAt, &res.Status, &res.InternalSampleDeadline,
 			&res.CustomerSampleDeadline, &safeActualFinished, &safeWaitingReason,
-			&safeLayoutID, &res.Customer.ID, &res.Customer.Name)
+			&safeLayoutID, &safeInternalProductionDeadline, &safeCustomerProductionDeadline,
+			&safeActualProductionStartedAt, &safeActualProductionCompletedAt,
+			&res.Customer.ID, &res.Customer.Name)
 		if err != nil {
 			return nil, errors.New("Failed to scan order row")
 		}
 		if safeActualFinished.Valid {
 			res.ActualSampleFinishedAt = &safeActualFinished.Time
+		}
+		if safeInternalProductionDeadline.Valid {
+			res.InternalProductionDeadline = &safeInternalProductionDeadline.Time
+		}
+		if safeCustomerProductionDeadline.Valid {
+			res.CustomerProductionDeadline = &safeCustomerProductionDeadline.Time
+		}
+		if safeActualProductionStartedAt.Valid {
+			res.ActualProductionStartedAt = &safeActualProductionStartedAt.Time
+		}
+		if safeActualProductionCompletedAt.Valid {
+			res.ActualProductionCompletedAt = &safeActualProductionCompletedAt.Time
 		}
 		if safeWaitingReason.Valid {
 			res.WaitingReason = &safeWaitingReason.String
@@ -134,10 +154,19 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 
 // ! update status order
 func (r *OrderRepository) UpdateOrderStatus(orderID int, newStatus string) error {
-	sqlStatement := `UPDATE orders SET status = $1 WHERE id = $2`
+	var sqlStatement string
 
-	if newStatus == "WAITIN_FOR_SAMPLE" {
+	switch newStatus {
+	case "WAITING_FOR_SAMPLE":
 		sqlStatement = `UPDATE orders SET status = $1, actual_sample_finished_at = NULL WHERE id = $2`
+	case "IN_PRODUCTION":
+		sqlStatement = `UPDATE orders SET status = $1, actual_production_started_at = CURRENT_TIMESTAMP,
+										internal_production_deadline = CURRENT_TIMESTAMP + INTERVAL '9 days',
+										customer_production_deadline = CURRENT_TIMESTAMP + INTERVAL '12 days' WHERE id = $2`
+	case "READY_FOR_SHIPPING":
+		sqlStatement = `UPDATE orders SET status = $1, actual_production_completed_at = CURRENT_TIMESTAMP WHERE id = $2`
+	default:
+		sqlStatement = `UPDATE orders SET status = $1 WHERE id = $2`
 	}
 
 	_, err := r.db.Exec(sqlStatement, newStatus, orderID)
@@ -214,11 +243,16 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 		`SELECT o.id, o.customer_id, c.name, c.phone, c.address,
 		o.total_quantity, o.production_type, o.status, o.created_at,
 		o.internal_sample_deadline, o.customer_sample_deadline,
-		o.actual_sample_finished_at, o.layout_id, o.waiting_reason FROM orders o
-		JOIN customers c ON o.customer_id = c.id WHERE o.id = $1`
+		o.actual_sample_finished_at, o.layout_id, o.waiting_reason, o.internal_production_deadline, 
+		o.customer_production_deadline, o.actual_production_started_at, o.actual_production_completed_at 
+		FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.id = $1`
 
 	var res OrderResponse
 	var safeActualFinished sql.NullTime
+	var safeInternalProductionDeadline sql.NullTime
+	var safeCustomerProductionDeadline sql.NullTime
+	var safeActualProductionStartedAt sql.NullTime
+	var safeActualProductionCompletedAt sql.NullTime
 	var safeLayoutID sql.NullInt64
 	var safeWaitingReason sql.NullString
 
@@ -226,7 +260,8 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 		&res.ID, &res.Customer.ID, &res.Customer.Name, &res.Customer.Phone,
 		&res.Customer.Address, &res.TotalQuantity, &res.ProductionType, &res.Status,
 		&res.CreatedAt, &res.InternalSampleDeadline, &res.CustomerSampleDeadline,
-		&safeActualFinished, &safeLayoutID, &safeWaitingReason,
+		&safeActualFinished, &safeLayoutID, &safeWaitingReason, &safeInternalProductionDeadline,
+		&safeCustomerProductionDeadline, &safeActualProductionStartedAt, &safeActualProductionCompletedAt,
 	)
 	if err != nil {
 		return nil, errors.New("Order Not Found")
@@ -235,12 +270,24 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 	if safeActualFinished.Valid {
 		res.ActualSampleFinishedAt = &safeActualFinished.Time
 	}
-	if safeLayoutID.Valid {
-		layoutID := int(safeLayoutID.Int64)
-		res.LayoutID = &layoutID
+	if safeInternalProductionDeadline.Valid {
+		res.InternalProductionDeadline = &safeInternalProductionDeadline.Time
+	}
+	if safeCustomerProductionDeadline.Valid {
+		res.CustomerProductionDeadline = &safeCustomerProductionDeadline.Time
+	}
+	if safeActualProductionStartedAt.Valid {
+		res.ActualProductionStartedAt = &safeActualProductionStartedAt.Time
+	}
+	if safeActualProductionCompletedAt.Valid {
+		res.ActualProductionCompletedAt = &safeActualProductionCompletedAt.Time
 	}
 	if safeWaitingReason.Valid {
 		res.WaitingReason = &safeWaitingReason.String
+	}
+	if safeLayoutID.Valid {
+		val := int(safeLayoutID.Int64)
+		res.LayoutID = &val
 	}
 
 	//! fetching sizes
@@ -302,7 +349,7 @@ func (r *OrderRepository) SetWaitingForMaterials(orderID int, reason string) err
 
 // ! resume order
 func (r *OrderRepository) ResumeOrder(orderID int) error {
-	query := `UPDATE orders SET status = 'READY_FOR_PRODUCTION', waiting_reason = NULL WHERE id = $1 AND status = 'WAITING_FOR_MATERIALS`
+	query := `UPDATE orders SET status = 'READY_FOR_PRODUCTION', waiting_reason = NULL WHERE id = $1 AND status = 'WAITING_FOR_MATERIALS'`
 	result, err := r.db.Exec(query, orderID)
 	if err != nil {
 		return errors.New("Failed to resume order")
@@ -314,4 +361,18 @@ func (r *OrderRepository) ResumeOrder(orderID int) error {
 	}
 
 	return nil
+}
+
+// ! Hold Production
+func (r *OrderRepository) HoldProduction(orderID int, reason string) error {
+	query := `UPDATE orders SET waiting_reason = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, reason, orderID)
+	return err
+}
+
+// ! Resume Production
+func (r *OrderRepository) ResumeProduction(orderID int) error {
+	query := `UPDATE orders SET waiting_reason = NULL WHERE id = $1`
+	_, err := r.db.Exec(query, orderID)
+	return err
 }

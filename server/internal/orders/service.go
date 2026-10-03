@@ -132,6 +132,12 @@ func (s *OrderService) UpdateStatus(orderID int, newStatus string) error {
 		}
 	}
 
+	if currentStatus == "READY_FOR_SHIPPING" {
+		if newStatus != "SHIPPED" {
+			return errors.New("After finishing and packing, order must be marked SHIPPED.")
+		}
+	}
+
 	return s.repo.UpdateOrderStatus(orderID, newStatus)
 }
 
@@ -161,4 +167,15 @@ func (s *OrderService) SetWaitingForMaterials(orderID int, reason string) error 
 
 func (s *OrderService) ResumeOrder(orderID int) error {
 	return s.repo.ResumeOrder(orderID)
+}
+
+func (s *OrderService) HoldProduction(orderID int, reason string) error {
+	if reason == "" {
+		return errors.New("Hold reason is required")
+	}
+	return s.repo.HoldProduction(orderID, reason)
+}
+
+func (s *OrderService) ResumeProduction(orderID int) error {
+	return s.repo.ResumeProduction(orderID)
 }
