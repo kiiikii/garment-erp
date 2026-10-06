@@ -18,9 +18,9 @@ func NewCustomeRepository(db *sql.DB) *CustomerRepository {
 // ! method insert customer
 func (r *CustomerRepository) Create(c *Customer) (int, error) {
 	var newID int
-	sqlStatement := `INSERT INTO customers (name, phone, address) VALUES ($1, $2, $3) RETURNING id`
+	sqlStatement := `INSERT INTO customers (name, phone, address, email) VALUES ($1, $2, $3, $4) RETURNING id`
 
-	err := r.db.QueryRow(sqlStatement, c.Name, c.Phone, c.Address).Scan(&newID)
+	err := r.db.QueryRow(sqlStatement, c.Name, c.Phone, c.Address, c.Email).Scan(&newID)
 	if err != nil {
 		return 0, errors.New("Failed to insert customer into database")
 	}
@@ -29,7 +29,7 @@ func (r *CustomerRepository) Create(c *Customer) (int, error) {
 }
 
 func (r *CustomerRepository) GetAll() ([]CustomerResponse, error) {
-	rows, err := r.db.Query("SELECT id, name, phone, address FROM customers")
+	rows, err := r.db.Query("SELECT id, name, phone, address, email FROM customers")
 	if err != nil {
 		return nil, errors.New("failed to query customers")
 	}
@@ -40,7 +40,7 @@ func (r *CustomerRepository) GetAll() ([]CustomerResponse, error) {
 
 	for rows.Next() {
 		var c CustomerResponse
-		err := rows.Scan(&c.ID, &c.Name, &c.Phone, &c.Address)
+		err := rows.Scan(&c.ID, &c.Name, &c.Phone, &c.Address, c.Email)
 		if err != nil {
 			return nil, errors.New("failed to scan customer row")
 		}
