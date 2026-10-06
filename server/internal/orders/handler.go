@@ -63,6 +63,7 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	// Otherwise, return the full list for the dashboard
 	orders, err := h.service.GetAllOrders()
 	if err != nil {
+		fmt.Println("GetAllOrders Handler Failed:", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

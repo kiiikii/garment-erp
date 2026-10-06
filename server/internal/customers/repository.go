@@ -40,10 +40,17 @@ func (r *CustomerRepository) GetAll() ([]CustomerResponse, error) {
 
 	for rows.Next() {
 		var c CustomerResponse
-		err := rows.Scan(&c.ID, &c.Name, &c.Phone, &c.Address, c.Email)
+		var safeEmail sql.NullString
+
+		err := rows.Scan(&c.ID, &c.Name, &c.Phone, &c.Address, &safeEmail)
 		if err != nil {
-			return nil, errors.New("failed to scan customer row")
+			return nil, errors.New("failed to scan customer row: " + err.Error())
 		}
+
+		if safeEmail.Valid {
+			c.Email = safeEmail.String
+		}
+
 		customerList = append(customerList, c)
 	}
 
