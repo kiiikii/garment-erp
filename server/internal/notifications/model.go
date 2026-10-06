@@ -10,7 +10,9 @@ type Notification struct {
 }
 
 type DelayedOrder struct {
-	OrderID  int
-	Status   string
-	Deadline time.Time
+	OrderID       int
+	Status        string
+	Deadline      time.Time
+	CustomerEmail string
+	CustomerPhone string
 }

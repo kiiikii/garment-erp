@@ -7,6 +7,7 @@ interface Customer {
   name: string;
   phone: string;
   address: string;
+  email: string
 }
 
 //! Next.js server component
@@ -48,6 +49,9 @@ export default async function Home() {
                   Phone
                 </th>
                 <th className="py-3 px-4 text-left text-sm font-semibold text-white">
+                  Email
+                </th>
+                <th className="py-3 px-4 text-left text-sm font-semibold text-white">
                   Address
                 </th>
               </tr>
@@ -64,6 +68,7 @@ export default async function Home() {
                     {c.name}
                   </td>
                   <td className="py-3 px-4 text-gray-700">{c.phone}</td>
+                  <td className="py-3 px-4 text-gray-700">{c.email}</td>
                   <td className="py-3 px-4 text-gray-700">{c.address}</td>
                 </tr>
               ))}

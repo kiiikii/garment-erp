@@ -7,6 +7,7 @@ export default function CustomerForm() {
   //! create react state hold the data as the user type
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("")
   const [address, setAddress] = useState("");
 
   //! function that running when user click Submit
@@ -15,7 +16,7 @@ export default function CustomerForm() {
     e.preventDefault();
 
     //! package into JSON
-    const newCustomer = { name, phone, address };
+    const newCustomer = { name, phone, email, address };
 
     //! fire the POST request
     const res = await fetch("http://localhost:8080/customers", {
@@ -30,6 +31,7 @@ export default function CustomerForm() {
       //! clearing field
       setName("");
       setPhone("");
+      setEmail("")
       setAddress("");
 
       //! forcing page to refresh to show new data table
@@ -63,6 +65,14 @@ export default function CustomerForm() {
           placeholder="Phone"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          className="border p-2 rounded text-black"
+          required
+        />
+        <input
+          type="text"
+          placeholder="email e.g youemail@gmail.com..."
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="border p-2 rounded text-black"
           required
         />
