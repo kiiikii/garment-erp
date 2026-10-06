@@ -52,4 +52,5 @@ type OrderResponse struct {
 	CustomerProductionDeadline  *time.Time `json:"customer_production_deadline"`
 	ActualProductionStartedAt   *time.Time `json:"actual_production_started_at"`
 	ActualProductionCompletedAt *time.Time `json:"actual_production_completed_at"`
+	WaitingStartedAt            *time.Time `json:"waiting_started_at"`
 }

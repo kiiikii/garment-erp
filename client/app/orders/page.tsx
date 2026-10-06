@@ -38,9 +38,20 @@ export default async function OrdersPage() {
             Production Orders
           </h1>
           {/* A simple link to navigate back to the homepage */}
-          <Link href="/" className="text-blue-600 hover:underline font-medium">
-            ← Back to Customers
-          </Link>
+          <div>
+            <Link
+              href="/"
+              className="text-blue-600 hover:underline font-medium mr-6"
+            >
+              ← Back to Dashboard
+            </Link>
+            <Link
+              href="/orders/new"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 shadow"
+            >
+              + Create Order
+            </Link>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden">

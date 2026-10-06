@@ -62,7 +62,8 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 		o.status, o.internal_sample_deadline, o.customer_sample_deadline, 
 		o.actual_sample_finished_at, o.waiting_reason, o.layout_id,
 		o.internal_production_deadline, o.customer_production_deadline,
-		o.actual_production_started_at, o.actual_production_completed_at, c.id, c.name 
+		o.actual_production_started_at, o.actual_production_completed_at,
+		o.waiting_started_at, c.id, c.name 
 		FROM orders o JOIN customers c ON o.customer_id = c.id ORDER BY o.id::integer ASC`
 
 	rows, err := r.db.Query(sqlStatement)
@@ -82,6 +83,7 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 		var safeCustomerProductionDeadline sql.NullTime
 		var safeActualProductionStartedAt sql.NullTime
 		var safeActualProductionCompletedAt sql.NullTime
+		var safeWaitingStartedAt sql.NullTime
 		var safeWaitingReason sql.NullString
 		var safeLayoutID sql.NullInt64
 
@@ -91,7 +93,7 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 			&res.CreatedAt, &res.Status, &res.InternalSampleDeadline,
 			&res.CustomerSampleDeadline, &safeActualFinished, &safeWaitingReason,
 			&safeLayoutID, &safeInternalProductionDeadline, &safeCustomerProductionDeadline,
-			&safeActualProductionStartedAt, &safeActualProductionCompletedAt,
+			&safeActualProductionStartedAt, &safeActualProductionCompletedAt, &safeWaitingStartedAt,
 			&res.Customer.ID, &res.Customer.Name)
 		if err != nil {
 			return nil, errors.New("Failed to scan order row")
@@ -110,6 +112,9 @@ func (r *OrderRepository) GetAllWithCustomer() ([]OrderResponse, error) {
 		}
 		if safeActualProductionCompletedAt.Valid {
 			res.ActualProductionCompletedAt = &safeActualProductionCompletedAt.Time
+		}
+		if safeWaitingStartedAt.Valid {
+			res.WaitingStartedAt = &safeWaitingStartedAt.Time
 		}
 		if safeWaitingReason.Valid {
 			res.WaitingReason = &safeWaitingReason.String
@@ -244,8 +249,8 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 		o.total_quantity, o.production_type, o.status, o.created_at,
 		o.internal_sample_deadline, o.customer_sample_deadline,
 		o.actual_sample_finished_at, o.layout_id, o.waiting_reason, o.internal_production_deadline, 
-		o.customer_production_deadline, o.actual_production_started_at, o.actual_production_completed_at 
-		FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.id = $1`
+		o.customer_production_deadline, o.actual_production_started_at, o.actual_production_completed_at, 
+		o.waiting_started_at FROM orders o JOIN customers c ON o.customer_id = c.id WHERE o.id = $1`
 
 	var res OrderResponse
 	var safeActualFinished sql.NullTime
@@ -253,6 +258,7 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 	var safeCustomerProductionDeadline sql.NullTime
 	var safeActualProductionStartedAt sql.NullTime
 	var safeActualProductionCompletedAt sql.NullTime
+	var safeWaitingStartedAt sql.NullTime
 	var safeLayoutID sql.NullInt64
 	var safeWaitingReason sql.NullString
 
@@ -262,6 +268,7 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 		&res.CreatedAt, &res.InternalSampleDeadline, &res.CustomerSampleDeadline,
 		&safeActualFinished, &safeLayoutID, &safeWaitingReason, &safeInternalProductionDeadline,
 		&safeCustomerProductionDeadline, &safeActualProductionStartedAt, &safeActualProductionCompletedAt,
+		&safeWaitingStartedAt,
 	)
 	if err != nil {
 		return nil, errors.New("Order Not Found")
@@ -281,6 +288,9 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 	}
 	if safeActualProductionCompletedAt.Valid {
 		res.ActualProductionCompletedAt = &safeActualProductionCompletedAt.Time
+	}
+	if safeWaitingStartedAt.Valid {
+		res.WaitingStartedAt = &safeWaitingStartedAt.Time
 	}
 	if safeWaitingReason.Valid {
 		res.WaitingReason = &safeWaitingReason.String
@@ -326,6 +336,8 @@ func (r *OrderRepository) GetOrderByID(id int) (*OrderResponse, error) {
 			}
 			if err := imgRows.Scan(&img.ID, &img.ImageURL); err != nil {
 				res.Images = append(res.Images, img)
+			} else {
+				fmt.Println("GetOrderByID image scan error:", err)
 			}
 		}
 	}
@@ -365,14 +377,14 @@ func (r *OrderRepository) ResumeOrder(orderID int) error {
 
 // ! Hold Production
 func (r *OrderRepository) HoldProduction(orderID int, reason string) error {
-	query := `UPDATE orders SET waiting_reason = $1 WHERE id = $2`
+	query := `UPDATE orders SET waiting_reason = $1, waiting_started_at = CURRENT_TIMESTAMP WHERE id = $2`
 	_, err := r.db.Exec(query, reason, orderID)
 	return err
 }
 
 // ! Resume Production
 func (r *OrderRepository) ResumeProduction(orderID int) error {
-	query := `UPDATE orders SET waiting_reason = NULL WHERE id = $1`
+	query := `UPDATE orders SET waiting_reason = NULL, waiting_started_at = NULL WHERE id = $1`
 	_, err := r.db.Exec(query, orderID)
 	return err
 }
