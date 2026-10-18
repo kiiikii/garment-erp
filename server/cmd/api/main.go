@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/kiiikii/garment-erp/server/internal/customers"
+	"github.com/kiiikii/garment-erp/server/internal/notifications"
 	"github.com/kiiikii/garment-erp/server/internal/orders"
 )
 
@@ -80,10 +82,12 @@ func main() {
 	//! repository
 	customerRepo := customers.NewCustomeRepository(db)
 	orderRepo := orders.NewOrderRepository(db)
+	notificationRepo := notifications.NewNotificationRepository(db)
 
 	//! service
 	customerService := customers.NewCustomerService(customerRepo)
 	orderService := orders.NewOrderService(orderRepo)
+	notificationService := notifications.NewNotificationService(notificationRepo)
 
 	//! handler
 	customerHandler := customers.NewCustomerHandler(customerService)
@@ -179,6 +183,16 @@ func main() {
 	http.HandleFunc("/orders/resume-prod", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		orderHandler.ResumeProduction(w, r)
 	}))
+
+	go func() {
+		notificationService.CheckAndSendAlerts()
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			notificationService.CheckAndSendAlerts()
+		}
+	}()
 
 	cwd, err := os.Getwd()
 	if err != nil {

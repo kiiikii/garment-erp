@@ -1,6 +1,9 @@
 package notifications
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type Notification struct {
 	ID        int       `json:"id"`
@@ -13,6 +16,7 @@ type DelayedOrder struct {
 	OrderID       int
 	Status        string
 	Deadline      time.Time
-	CustomerEmail string
-	CustomerPhone string
+	CustomerName  string
+	CustomerEmail sql.NullString
+	WaitingReason sql.NullString
 }

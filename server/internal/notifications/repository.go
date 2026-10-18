@@ -14,10 +14,12 @@ func NewNotificationRepository(db *sql.DB) *NotificationRepository {
 }
 
 func (r *NotificationRepository) GetDelayedProductionOrder() ([]DelayedOrder, error) {
-	query := `SELECT o.id, o.status, o.internal_production_deadline, c.email, c.phone FROM orders o
-						JOIN customers c ON o.customer_id = c.id WHERE o.status NOT IN ('SHIPPED', 'READY_FOR_SHIPPING')
-						AND o.internal_production_deadline < CURRENT_TIMESTAMP AND o.id NOT IN (SELECT order_id FROM notifications
-						WHERE alert_type = 'PRODUCTION_DELAYED)`
+	query := `SELECT o.id, o.status, o.internal_production_deadline, c.name, c.email, o.waiting_reason 
+			  FROM orders o JOIN customers c ON o.customer_id = c.id
+		      WHERE o.status NOT IN ('SHIPPED', 'READY_FOR_SHIPPING') 
+			  AND o.internal_production_deadline < CURRENT_TIMESTAMP
+			  AND o.id NOT IN (SELECT order_id FROM notifications WHERE alert_type = 'PRODUCTION_DELAY')
+			 `
 
 	rows, err := r.db.Query(query)
 	if err != nil {
@@ -29,7 +31,7 @@ func (r *NotificationRepository) GetDelayedProductionOrder() ([]DelayedOrder, er
 	var delayed []DelayedOrder
 	for rows.Next() {
 		var order DelayedOrder
-		if err := rows.Scan(&order.OrderID, &order.Status, &order.Deadline, &order.CustomerEmail, &order.CustomerPhone); err == nil {
+		if err := rows.Scan(&order.OrderID, &order.Status, &order.Deadline, &order.CustomerName, &order.CustomerEmail); err == nil {
 			delayed = append(delayed, order)
 		}
 	}
